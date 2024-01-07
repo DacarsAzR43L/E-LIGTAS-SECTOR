@@ -1,0 +1,22 @@
+flutter_native_splash:
+  color: "#E62B30"
+  color_ios: "#E62B30"
+  image: "Assets/e-ligtas.png"
+  image_ios: "Assets/e-ligtas.png"
+ #background_image: "Assets/e-ligtas.jpg"
+  #background_image_android: "Assets/e-ligtas.jpg"
+  #android_gravity: scaleAspectFill
+  fullscreen: true
+
+  android_12:
+    color: "#E62B30"
+    color_ios: "#E62B30"
+    image: "Assets/e-ligtas.png"
+    image_ios: "Assets/e-ligtas.png"
+    #background_image: "Assets/e-ligtas.jpg"
+    #android_gravity: scaleAspectFill
+    fullscreen: true
+
+  android: true
+  ios: true
+  web: false
