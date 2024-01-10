@@ -12,6 +12,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1; // Set the default tab index to 1 (Business)
+  // Add this line to define previousListLength
 
   @override
   Widget build(BuildContext context) {

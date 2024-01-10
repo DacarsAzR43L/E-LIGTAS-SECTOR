@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:cached_memory_image/cached_memory_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -34,6 +35,12 @@ class ActiveRequestCard {
 }
 
 class ActiveRequestScreen extends StatefulWidget {
+
+
+
+
+
+
   @override
   _ActiveRequestScreenState createState() => _ActiveRequestScreenState();
 }
@@ -51,29 +58,24 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   @override
   void initState() {
     super.initState();
+
     fetchData();
 
 
-    //setZeroValue('exampleInt', 0);
-
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
-        // Reached the end of the list, fetch more data if needed
-        fetchData();
-      }
-    });
+    loadPreviousListLength();
 
     // Start the timer in initState
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       // Fetch data every 2 seconds
       fetchData();
-      print('Go na' );
+      print('Go na');
+      loadPreviousListLength();
     });
   }
 
   Future<void> fetchData() async {
     final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
-   // int newItemsCountInCurrentFetch = await getZeroValue('exampleInt');
+
     try {
       final response = await http.get(Uri.parse(apiUrl));
 
@@ -81,8 +83,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         final List<dynamic> responseData = json.decode(response.body);
 
         setState(() {
-          int newItemsCountInCurrentFetch = 0;
-
           List<ActiveRequestCard> currentFetch = responseData
               .asMap()
               .map((index, data) => MapEntry(
@@ -103,35 +103,30 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
               .values
               .toList();
 
-          // Count only the new items in the current fetch
-          if (currentFetch.length > previousListLength) {
-            newItemsCountInCurrentFetch = currentFetch.length - previousListLength;
-          }
+          // Check if the lists are different
+          if (!listEquals(activeRequestList, currentFetch)) {
+            // Calculate new items count
+            int newItemsCountInCurrentFetch = currentFetch.length - activeRequestList.length;
 
-          // Check if new items are added
-          if (newItemsCountInCurrentFetch > 0) {
-            // Items are added
-            print('New items added!');
-            print('New items count in current fetch: $newItemsCountInCurrentFetch');
+            if (newItemsCountInCurrentFetch > 0) {
+              // New items are added
+              print('New items added!');
+              print('New items count in current fetch: $newItemsCountInCurrentFetch');
 
-            // Add items from the previous fetch to the current fetch
-            if (newItemsCount > 0) {
-              currentFetch.addAll(activeRequestList);
+              // Update the total new items count
+              newItemsCount += newItemsCountInCurrentFetch;
+              print(newItemsCount);
+            } else {
+              // No new items, set newItemsCount to 0
+              newItemsCount = 0;
             }
-
-            // Update the total new items count
-            newItemsCount += newItemsCountInCurrentFetch;
-            // No saving to local storage in this version
 
             // Update the activeRequestList
             activeRequestList = currentFetch;
-          } else {
-            // No new items, clear the previous fetch
-            activeRequestList = currentFetch;
-          }
 
-          // Update the previous list length
-          previousListLength = activeRequestList.length;
+            // Save the new length
+            savePreviousListLength(activeRequestList.length);
+          }
         });
       } else {
         // Handle server error
@@ -143,12 +138,37 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     }
   }
 
+
+
+
+
+
+
+
+
+
+
+
   /*Future<void> loadNewItemsCount() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       newItemsCount = prefs.getInt('newItemsCount') ?? 0;
     });
   }*/
+
+  Future<void> loadPreviousListLength() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int savedPreviousListLength = prefs.getInt('previousListLength') ?? 0;
+    print('Loaded Previous List Length: $savedPreviousListLength');
+    setState(() {
+      previousListLength = savedPreviousListLength;
+    });
+  }
+
+  Future<void> savePreviousListLength(int length) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('previousListLength', length);
+  }
 
   Future<void> setZeroValue(String key, int value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
