@@ -11,8 +11,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 1; // Set the default tab index to 1 (Business)
-  // Add this line to define previousListLength
+  int _selectedIndex = 1;
+  int activeReportsBadgeCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +20,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 4,
-        toolbarHeight:60.0,
+        toolbarHeight: 60.0,
         shadowColor: Colors.black,
-        title: Text('E-LIGTAS',
-            style:TextStyle(
-                fontFamily: "Montserrat-Bold",
-                fontWeight: FontWeight.bold,
-                fontSize: 24)
+        title: Text(
+          'E-LIGTAS',
+          style: TextStyle(
+            fontFamily: "Montserrat-Bold",
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
         ),
         actions: [
           IconButton(
@@ -46,12 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           BottomNavigationBarItem(
             icon: badges.Badge(
-              badgeContent:Text('3',style: TextStyle(color: Colors.white),),
-              badgeStyle: badges.BadgeStyle(
-
-              ),
+              badgeContent: Text('$activeReportsBadgeCount', style: TextStyle(color: Colors.white)),
+              badgeStyle: badges.BadgeStyle(),
               child: Icon(Icons.report_outlined),
-            ) ,
+            ),
             label: 'Active Reports',
           ),
           BottomNavigationBarItem(
@@ -74,42 +74,23 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text('Welcome to the Home Screen!'),
               SizedBox(height: 16.0),
-              FutureBuilder<String>(
-                future: getUserEmail(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    // Loading state
-                    return CircularProgressIndicator();
-                  } else {
-                    // Display the user's email
-                    String userEmail = snapshot.data ?? '';
-                    return Text('Logged in as: $userEmail');
-                  }
-                },
-              ),
-              SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () async {
-                  // Clear user information from SharedPreferences on logout
-                  final prefs = await SharedPreferences.getInstance();
-                  prefs.clear();
-
-                  // Navigate back to the login screen
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginPage()),
-                  );
-                },
-                child: Text('Logout'),
-              ),
+              // Add your user-related widgets here
             ],
           ),
         );
       case 1:
-        return ActiveRequestScreen();
+        return ActiveRequestScreen(
+          updatePreviousListLength: (length) {
+            // Update the badge count when the length changes
+            setState(() {
+              activeReportsBadgeCount = length;
+            });
+            print('Previous List Length Updated: $length');
+          },
+        );
       case 2:
         return Center(
-          child: Text('School Tab'),
+          child: Text('Manual Report Tab'),
         );
       default:
         return Container();
@@ -121,9 +102,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedIndex = index;
     });
   }
+}
 
   Future<String> getUserEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('userEmail') ?? '';
   }
-}

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:badges/badges.dart' as badges;
 
 class ActiveRequestCard {
   final int id;
@@ -18,7 +19,6 @@ class ActiveRequestCard {
   final residentProfile;
   final image;
   final locationName;
-  // final report_id;
 
   ActiveRequestCard({
     required this.id,
@@ -30,43 +30,45 @@ class ActiveRequestCard {
     required this.message,
     required this.residentProfile,
     required this.image,
-    required this.locationName, //required this.report_id,
+    required this.locationName,
   });
 }
 
 class ActiveRequestScreen extends StatefulWidget {
+  final Function(int) updatePreviousListLength;
 
-
-
-
-
+  ActiveRequestScreen({required this.updatePreviousListLength});
 
   @override
-  _ActiveRequestScreenState createState() => _ActiveRequestScreenState();
+  _ActiveRequestScreenState createState() => _ActiveRequestScreenState(
+    previousListLength: 0, // or any default value you want to set initially
+    updatePreviousListLength: updatePreviousListLength,
+  );
 }
 
 class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
-  int? expandedCardIndex; // Track the index of the expanded card
+  int? expandedCardIndex;
   List<ActiveRequestCard> activeRequestList = [];
-  late Timer _timer; // Declare a timer variable
+  late Timer _timer;
   int newItemsCount = 0;
-  int previousListLength = 0;
-
+  int previousListLength;
+  final Function(int) updatePreviousListLength;
 
   ScrollController _scrollController = ScrollController();
+
+  _ActiveRequestScreenState({
+    required this.previousListLength,
+    required this.updatePreviousListLength,
+  });
 
   @override
   void initState() {
     super.initState();
 
     fetchData();
-
-
     loadPreviousListLength();
 
-    // Start the timer in initState
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      // Fetch data every 2 seconds
       fetchData();
       print('Go na');
       loadPreviousListLength();
@@ -126,35 +128,17 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
             // Save the new length
             savePreviousListLength(activeRequestList.length);
+            updatePreviousListLength(activeRequestList.length);
+
           }
         });
       } else {
-        // Handle server error
         print('Error: ${response.reasonPhrase}');
       }
     } catch (error) {
-      // Handle network error
       print('Error: $error');
     }
   }
-
-
-
-
-
-
-
-
-
-
-
-
-  /*Future<void> loadNewItemsCount() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      newItemsCount = prefs.getInt('newItemsCount') ?? 0;
-    });
-  }*/
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -162,6 +146,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     print('Loaded Previous List Length: $savedPreviousListLength');
     setState(() {
       previousListLength = savedPreviousListLength;
+      widget.updatePreviousListLength(previousListLength); // Call the callback function
     });
   }
 
@@ -170,23 +155,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     prefs.setInt('previousListLength', length);
   }
 
-  Future<void> setZeroValue(String key, int value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt(key, value);
-  }
-
-  // Function to get an int value from shared preferences
-  Future<int> getZeroValue(String key) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(key) ?? 0;
-  }
-
-
   @override
   void dispose() {
-    // Save the newItemsCount when disposing of the widget
-
-    // Cancel the timer in dispose
     _timer.cancel();
     super.dispose();
   }
@@ -210,11 +180,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     ActiveRequestCard activeRequestCard = activeRequestList[index];
 
     if (index >= previousListLength) {
-      // This item is new
       newItemsCount++;
     }
 
-    Key cardKey = Key('activeRequestCard_$index'); // Unique key for each Card
+    Key cardKey = Key('activeRequestCard_$index');
 
     return KeyedSubtree(
       key: cardKey,
@@ -222,15 +191,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         onTap: () {
           setState(() {
             if (expandedCardIndex == index) {
-              expandedCardIndex =
-              null; // Collapse the current card if tapped again
+              expandedCardIndex = null;
             } else {
-              expandedCardIndex = index; // Expand the selected card
+              expandedCardIndex = index;
             }
           });
         },
         child: Card(
-          key: cardKey, // Assign the unique key to the Card widget
+          key: cardKey,
           margin: EdgeInsets.all(8.0),
           child: Column(
             children: [
@@ -256,7 +224,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                 ),
               ),
               Container(
-                width: 500, // Set a specific width
+                width: 500,
                 child: Visibility(
                   visible: expandedCardIndex == index,
                   child: Padding(
@@ -269,27 +237,27 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                         SizedBox(height: 5.0,),
                         SizedBox(height: 5.0,),
                         Row(
-                            children: [
-                              Text('Location Name: ',),
-                              SizedBox(width: 5.0,),
-                              Flexible(child: Text(activeRequestCard.locationName, softWrap: true)),
-                            ]
+                          children: [
+                            Text('Location Name: ',),
+                            SizedBox(width: 5.0,),
+                            Flexible(child: Text(activeRequestCard.locationName, softWrap: true)),
+                          ],
                         ),
                         SizedBox(height: 5.0,),
                         Row(
                           children: [
-                            Text('Location Link: ', style: TextStyle(color: Colors.black)), // Label
+                            Text('Location Link: ', style: TextStyle(color: Colors.black)),
                             SizedBox(width: 5.0,),
                             Flexible(
                               child: GestureDetector(
                                 onTap: () {
-                                  launch(activeRequestCard.locationLink); // Launch the URL when tapped
+                                  launch(activeRequestCard.locationLink);
                                 },
                                 child: Text(
                                   '${activeRequestCard.locationLink}',
                                   softWrap: true,
                                   style: TextStyle(
-                                    color: Colors.blue, // Customize the link color
+                                    color: Colors.blue,
                                     decoration: TextDecoration.underline,
                                   ),
                                 ),
@@ -306,20 +274,23 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                             children: [
                               Text('Phone Number: '),
                               SizedBox(width: 5.0,),
-                              Text('+${activeRequestCard.phoneNumber}',style: TextStyle(
-                                color: Colors.blue, // Customize the link color
-                                decoration: TextDecoration.underline,
-                              ),),
+                              Text(
+                                '+${activeRequestCard.phoneNumber}',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         SizedBox(height: 5.0,),
                         Row(
-                            children: [
-                              Text('Message: ',),
-                              SizedBox(width: 5.0,),
-                              Flexible(child: Text(activeRequestCard.message, softWrap: true)),
-                            ]
+                          children: [
+                            Text('Message: ',),
+                            SizedBox(width: 5.0,),
+                            Flexible(child: Text(activeRequestCard.message, softWrap: true)),
+                          ],
                         ),
                         SizedBox(height: 10.0,),
                         Container(
@@ -329,9 +300,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                             uniqueKey: 'app://image/${activeRequestCard.id}',
                             base64: activeRequestCard.image,
                           )
-                              : Placeholder(), // Placeholder image
+                              : Placeholder(),
                         ),
-                        // Add more details if needed
                       ],
                     ),
                   ),
