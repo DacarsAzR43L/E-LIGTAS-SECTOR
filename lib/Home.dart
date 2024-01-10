@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'NavigationPages/Active_Request.dart';
 import 'login_page.dart';
+import 'package:badges/badges.dart'as badges;
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -42,7 +44,13 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Accepted Reports',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.report_outlined),
+            icon: badges.Badge(
+              badgeContent:Text('3',style: TextStyle(color: Colors.white),),
+              badgeStyle: badges.BadgeStyle(
+
+              ),
+              child: Icon(Icons.report_outlined),
+            ) ,
             label: 'Active Reports',
           ),
           BottomNavigationBarItem(
