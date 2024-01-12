@@ -1,3 +1,4 @@
+import 'package:e_ligtas_sector/NavigationPages/CenterButtonWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'NavigationPages/Active_Request.dart';
@@ -68,15 +69,26 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _getBody(int index) {
     switch (index) {
       case 0:
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Welcome to the Home Screen!'),
-              SizedBox(height: 16.0),
-              // Add your user-related widgets here
-            ],
-          ),
+        return FutureBuilder<String>(
+          future: getUserEmail(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              String userEmail = snapshot.data ?? '';
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Welcome to the Home Screen!'),
+                    SizedBox(height: 16.0),
+                    Text('User Email: $userEmail'),
+                    // Add your user-related widgets here
+                  ],
+                ),
+              );
+            } else {
+              return Center(child: CircularProgressIndicator());
+            }
+          },
         );
       case 1:
         return ActiveRequestScreen(
@@ -89,9 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 2:
-        return Center(
-          child: Text('Manual Report Tab'),
-        );
+        return CenteredButtonWidget();
       default:
         return Container();
     }

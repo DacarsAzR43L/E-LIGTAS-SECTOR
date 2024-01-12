@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_memory_image/cached_memory_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:badges/badges.dart' as badges;
+import 'dart:isolate';
+import 'dart:ui';
+
 
 class ActiveRequestCard {
   final int id;
@@ -19,9 +22,11 @@ class ActiveRequestCard {
   final residentProfile;
   final image;
   final locationName;
+  final reportId;
 
   ActiveRequestCard({
     required this.id,
+    required this.reportId,
     required this.name,
     required this.emergencyType,
     required this.date,
@@ -47,36 +52,119 @@ class ActiveRequestScreen extends StatefulWidget {
 }
 
 class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
+
   int? expandedCardIndex;
   List<ActiveRequestCard> activeRequestList = [];
   late Timer _timer;
   int newItemsCount = 0;
+  String status ="1";
   int previousListLength;
   final Function(int) updatePreviousListLength;
+  ActiveRequestCard? activeRequestCard;
 
-  ScrollController _scrollController = ScrollController();
+  //Responder Info
+  String responderName = '';
+  String userFrom = '';
+
+
 
   _ActiveRequestScreenState({
     required this.previousListLength,
     required this.updatePreviousListLength,
   });
 
+
+
   @override
   void initState() {
     super.initState();
 
     fetchData();
+
+
     loadPreviousListLength();
 
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    // Start the timer in initState
+   _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+      // Fetch data every 2 seconds
       fetchData();
       print('Go na');
       loadPreviousListLength();
     });
   }
 
+  Future<void> fetchDataFromPHP(String email) async {
+    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
+
+    try {
+      // Send a POST request to the PHP script with the email parameter
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {'email': email},
+      );
+
+      if (response.statusCode == 200) {
+        // Decode the response JSON
+        Map <String,dynamic> responseData = json.decode(response.body);
+
+        // Extract the values and set them in a string
+         responderName = responseData['responder_name'];
+         userFrom = responseData['userfrom'];
+
+
+      } else {
+        print('Error: ${response.body}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> insertData() async {
+    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/accept_responder_report.php';
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'status': status,
+          'responder_name': responderName,
+          'userfrom': userFrom,
+          'reportId': activeRequestCard?.reportId.toString(), // Keep it as an integer
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = await json.decode(response.body) as Map<String, dynamic>;
+
+        if (responseData['success'] == true) {
+          print('Data inserted successfully');
+        } else {
+          print('Error: ${responseData['message']}');
+          print('Status: $status');
+          print('Report ID: ${activeRequestCard?.reportId}');
+          print('User From: $userFrom');
+          print('Responder Name: $responderName');
+        }
+      } else {
+        print('Failed to connect to the server. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+
   Future<void> fetchData() async {
     final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
+
+    // Get the user email
+    String userEmail = await getUserEmail();
+
+    // Call fetchDataFromPHP with the user email
+    await fetchDataFromPHP(userEmail);
+
+    print(userEmail);
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -87,33 +175,37 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         setState(() {
           List<ActiveRequestCard> currentFetch = responseData
               .asMap()
-              .map((index, data) => MapEntry(
-            index,
-            ActiveRequestCard(
-              id: index,
-              name: data['resident_name'],
-              emergencyType: data['emergency_type'],
-              date: data['dateandTime'],
-              locationName: data['locationName'],
-              locationLink: data['locationLink'],
-              phoneNumber: data['phoneNumber'],
-              message: data['message'],
-              residentProfile: data['residentProfile'],
-              image: data['imageEvidence'],
-            ),
-          ))
+              .map((index, data) =>
+              MapEntry(
+                index,
+                ActiveRequestCard(
+                  id: index,
+                  reportId: data['report_id'],
+                  name: data['resident_name'],
+                  emergencyType: data['emergency_type'],
+                  date: data['dateandTime'],
+                  locationName: data['locationName'],
+                  locationLink: data['locationLink'],
+                  phoneNumber: data['phoneNumber'],
+                  message: data['message'],
+                  residentProfile: data['residentProfile'],
+                  image: data['imageEvidence'],
+                ),
+              ))
               .values
               .toList();
 
           // Check if the lists are different
           if (!listEquals(activeRequestList, currentFetch)) {
             // Calculate new items count
-            int newItemsCountInCurrentFetch = currentFetch.length - activeRequestList.length;
+            int newItemsCountInCurrentFetch = currentFetch.length -
+                activeRequestList.length;
 
             if (newItemsCountInCurrentFetch > 0) {
               // New items are added
               print('New items added!');
-              print('New items count in current fetch: $newItemsCountInCurrentFetch');
+              print(
+                  'New items count in current fetch: $newItemsCountInCurrentFetch');
 
               // Update the total new items count
               newItemsCount += newItemsCountInCurrentFetch;
@@ -129,7 +221,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
             // Save the new length
             savePreviousListLength(activeRequestList.length);
             updatePreviousListLength(activeRequestList.length);
-
           }
         });
       } else {
@@ -139,6 +230,22 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       print('Error: $error');
     }
   }
+
+
+
+  removeItem(int index, String reportId)  {
+    setState(() {
+      // Remove the item from the list
+      activeRequestList.removeAt(index);
+      insertData();
+      // Update the previous list length and notify the parent widget
+      savePreviousListLength(activeRequestList.length);
+      updatePreviousListLength(activeRequestList.length);
+    });
+
+
+  }
+
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -161,6 +268,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,7 +285,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   Widget _buildActiveRequestCard(int index) {
-    ActiveRequestCard activeRequestCard = activeRequestList[index];
+     activeRequestCard = activeRequestList[index];
 
     if (index >= previousListLength) {
       newItemsCount++;
@@ -205,22 +313,40 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
               ListTile(
                 leading: ClipOval(
                   child: CachedMemoryImage(
-                    uniqueKey: 'app://imageProfile/${activeRequestCard.id}',
-                    base64: activeRequestCard.residentProfile,
+                    uniqueKey: 'app://imageProfile/${activeRequestCard?.reportId}',
+                    base64: activeRequestCard?.residentProfile,
                   ),
                 ),
-                title: Text(activeRequestCard.name),
+                title: Text(activeRequestCard!.name),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Emergency Type: ${activeRequestCard.emergencyType}'),
-                    Text('Date: ${activeRequestCard.date}'),
+                    Text('Emergency Type: ${activeRequestCard?.emergencyType}'),
+                    Text('Date: ${activeRequestCard?.date}'),
                   ],
                 ),
-                trailing: Icon(
-                  Icons.check,
-                  color: Colors.green,
-                  size: 30.0,
+                trailing: GestureDetector(
+                  onTap: () {
+                    AwesomeDialog(
+                      context: context,
+                      dialogType: DialogType.warning,
+                      animType: AnimType.rightSlide,
+                      btnOkColor: Color.fromRGBO(51, 71, 246, 1),
+                      title: 'Confirm Rescue',
+                      desc: 'Are you sure you want to accept this report? ',
+                      btnCancelOnPress: () {},
+                      btnOkOnPress: () {
+                        removeItem(index, activeRequestCard!.reportId);
+                      },
+
+                      dismissOnTouchOutside: false,
+                    )..show();
+                  },
+                  child: Icon(
+                    Icons.check,
+                    color: Colors.green,
+                    size: 30.0,
+                  ),
                 ),
               ),
               Container(
@@ -240,7 +366,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                           children: [
                             Text('Location Name: ',),
                             SizedBox(width: 5.0,),
-                            Flexible(child: Text(activeRequestCard.locationName, softWrap: true)),
+                            Flexible(child: Text(activeRequestCard?.locationName, softWrap: true)),
                           ],
                         ),
                         SizedBox(height: 5.0,),
@@ -251,10 +377,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                             Flexible(
                               child: GestureDetector(
                                 onTap: () {
-                                  launch(activeRequestCard.locationLink);
+                                  launch(activeRequestCard?.locationLink);
                                 },
                                 child: Text(
-                                  '${activeRequestCard.locationLink}',
+                                  '${activeRequestCard?.locationLink}',
                                   softWrap: true,
                                   style: TextStyle(
                                     color: Colors.blue,
@@ -268,14 +394,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                         SizedBox(height: 5.0,),
                         GestureDetector(
                           onTap: () {
-                            launch('tel:+${activeRequestCard.phoneNumber}');
+                            launch('tel:+${activeRequestCard?.phoneNumber}');
                           },
                           child: Row(
                             children: [
                               Text('Phone Number: '),
                               SizedBox(width: 5.0,),
                               Text(
-                                '+${activeRequestCard.phoneNumber}',
+                                '+${activeRequestCard?.phoneNumber}',
                                 style: TextStyle(
                                   color: Colors.blue,
                                   decoration: TextDecoration.underline,
@@ -289,16 +415,16 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                           children: [
                             Text('Message: ',),
                             SizedBox(width: 5.0,),
-                            Flexible(child: Text(activeRequestCard.message, softWrap: true)),
+                            Flexible(child: Text(activeRequestCard?.message, softWrap: true)),
                           ],
                         ),
                         SizedBox(height: 10.0,),
                         Container(
                           alignment: Alignment.center,
-                          child: activeRequestCard.image != null
+                          child: activeRequestCard?.image != null
                               ? CachedMemoryImage(
-                            uniqueKey: 'app://image/${activeRequestCard.id}',
-                            base64: activeRequestCard.image,
+                            uniqueKey: 'app://image/${activeRequestCard?.reportId}',
+                            base64: activeRequestCard?.image,
                           )
                               : Placeholder(),
                         ),
@@ -313,4 +439,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       ),
     );
   }
+}
+Future<String> getUserEmail() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('userEmail') ?? '';
 }
