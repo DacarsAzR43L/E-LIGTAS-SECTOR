@@ -46,7 +46,6 @@ class AcceptedReportsScreen extends StatefulWidget {
 class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   int? expandedCardIndex;
   List<AcceptedReportsCard> acceptedReportslist = [];
-  late Timer _timer;
   int newItemsCount = 0;
   String status = "1";
   int previousListLength =0;
@@ -56,17 +55,15 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   String responderName = '';
   String userFrom = '';
 
+
+
+
   @override
   void initState() {
     super.initState();
+
     fetchData();
 
-    // Start the timer in initState
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      // Fetch data every 10 seconds
-      fetchData();
-
-    });
   }
 
   Future<void> fetchDataFromPHP(String email) async {
@@ -95,42 +92,10 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     }
   }
 
-  Future<void> insertData() async {
-    final String apiUrl =
-        'http://192.168.100.7/e-ligtas-sector/accept_responder_report.php';
 
-    try {
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        body: {
-          'status': status,
-          'responder_name': responderName,
-          'userfrom': userFrom,
-          'reportId': acceptedReportsCard?.reportId.toString(),
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = await json.decode(response.body) as Map<String, dynamic>;
-
-        if (responseData['success'] == true) {
-          print('Data inserted successfully');
-        } else {
-          print('Error: ${responseData['message']}');
-          print('Status: $status');
-          print('Report ID: ${acceptedReportsCard?.reportId}');
-          print('User From: $userFrom');
-          print('Responder Name: $responderName');
-        }
-      } else {
-        print('Failed to connect to the server. Status code: ${response.statusCode}');
-      }
-    } catch (error) {
-      print('Error: $error');
-    }
-  }
 
   Future<void> fetchData() async {
+
     final String apiUrl =
         'http://192.168.100.7/e-ligtas-sector/get_accepted_reports.php';
 
@@ -174,11 +139,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
               .values
               .toList();
 
+          // Reverse the order of the list
+          currentFetch = currentFetch.reversed.toList();
+
           // Check if the lists are different
           if (!listEquals(acceptedReportslist, currentFetch)) {
             // Calculate new items count
-            int newItemsCountInCurrentFetch = currentFetch.length -
-                acceptedReportslist.length;
+            int newItemsCountInCurrentFetch =
+                currentFetch.length - acceptedReportslist.length;
 
             if (newItemsCountInCurrentFetch > 0) {
               // New items are added
@@ -194,7 +162,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
               newItemsCount = 0;
             }
 
-            // Update the activeRequestList
+            // Update the acceptedReportslist with the reversed list
             acceptedReportslist = currentFetch;
 
             // Save the new length
@@ -209,15 +177,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     }
   }
 
-  removeItem(int index, String reportId) {
-    setState(() {
-      // Remove the item from the list
-      acceptedReportslist.removeAt(index);
-      insertData();
-      // Update the previous list length
-      savePreviousListLength(acceptedReportslist.length);
-    });
-  }
+
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -235,7 +195,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();
     super.dispose();
   }
 

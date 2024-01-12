@@ -82,14 +82,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     fetchData();
 
 
-   // loadPreviousListLength();
-
     // Start the timer in initState
    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      // Fetch data every 2 seconds
+
       fetchData();
-
-
     });
   }
 
