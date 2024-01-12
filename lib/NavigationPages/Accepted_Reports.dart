@@ -10,8 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:isolate';
 import 'dart:ui';
 
-
-class ActiveRequestCard {
+class AcceptedReportsCard {
   final int id;
   final String name;
   final String emergencyType;
@@ -24,7 +23,7 @@ class ActiveRequestCard {
   final locationName;
   final reportId;
 
-  ActiveRequestCard({
+  AcceptedReportsCard({
     required this.id,
     required this.reportId,
     required this.name,
@@ -39,62 +38,40 @@ class ActiveRequestCard {
   });
 }
 
-class ActiveRequestScreen extends StatefulWidget {
-  final Function(int) updatePreviousListLength;
-
-  ActiveRequestScreen({required this.updatePreviousListLength});
-
+class AcceptedReportsScreen extends StatefulWidget {
   @override
-  _ActiveRequestScreenState createState() => _ActiveRequestScreenState(
-    previousListLength: 0, // or any default value you want to set initially
-    updatePreviousListLength: updatePreviousListLength,
-  );
+  _AcceptedReportsScreenState createState() => _AcceptedReportsScreenState();
 }
 
-class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
-
+class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   int? expandedCardIndex;
-  List<ActiveRequestCard> activeRequestList = [];
+  List<AcceptedReportsCard> acceptedReportslist = [];
   late Timer _timer;
   int newItemsCount = 0;
-  String status ="1";
-  int previousListLength;
-  final Function(int) updatePreviousListLength;
-  ActiveRequestCard? activeRequestCard;
+  String status = "1";
+  int previousListLength =0;
+  AcceptedReportsCard? acceptedReportsCard;
 
-  //Responder Info
+  // Responder Info
   String responderName = '';
   String userFrom = '';
-
-
-
-  _ActiveRequestScreenState({
-    required this.previousListLength,
-    required this.updatePreviousListLength,
-  });
-
-
 
   @override
   void initState() {
     super.initState();
-
     fetchData();
 
-
-    loadPreviousListLength();
-
     // Start the timer in initState
-   _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      // Fetch data every 2 seconds
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+      // Fetch data every 10 seconds
       fetchData();
-      print('Go na');
-      loadPreviousListLength();
+
     });
   }
 
   Future<void> fetchDataFromPHP(String email) async {
-    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
+    final String apiUrl =
+        'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
 
     try {
       // Send a POST request to the PHP script with the email parameter
@@ -105,13 +82,11 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
       if (response.statusCode == 200) {
         // Decode the response JSON
-        Map <String,dynamic> responseData = json.decode(response.body);
+        Map<String, dynamic> responseData = json.decode(response.body);
 
         // Extract the values and set them in a string
-         responderName = responseData['responder_name'];
-         userFrom = responseData['userfrom'];
-
-
+        responderName = responseData['responder_name'];
+        userFrom = responseData['userfrom'];
       } else {
         print('Error: ${response.body}');
       }
@@ -121,7 +96,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   Future<void> insertData() async {
-    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/accept_responder_report.php';
+    final String apiUrl =
+        'http://192.168.100.7/e-ligtas-sector/accept_responder_report.php';
 
     try {
       final response = await http.post(
@@ -130,7 +106,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           'status': status,
           'responder_name': responderName,
           'userfrom': userFrom,
-          'reportId': activeRequestCard?.reportId.toString(), // Keep it as an integer
+          'reportId': acceptedReportsCard?.reportId.toString(),
         },
       );
 
@@ -142,7 +118,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         } else {
           print('Error: ${responseData['message']}');
           print('Status: $status');
-          print('Report ID: ${activeRequestCard?.reportId}');
+          print('Report ID: ${acceptedReportsCard?.reportId}');
           print('User From: $userFrom');
           print('Responder Name: $responderName');
         }
@@ -154,9 +130,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     }
   }
 
-
   Future<void> fetchData() async {
-    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
+    final String apiUrl =
+        'http://192.168.100.7/e-ligtas-sector/get_accepted_reports.php';
 
     // Get the user email
     String userEmail = await getUserEmail();
@@ -165,41 +141,44 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     await fetchDataFromPHP(userEmail);
 
     print(userEmail);
+    print(responderName);
 
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {'responder_name': responderName},
+      );
 
       if (response.statusCode == 200 && mounted) {
         final List<dynamic> responseData = json.decode(response.body);
 
         setState(() {
-          List<ActiveRequestCard> currentFetch = responseData
+          List<AcceptedReportsCard> currentFetch = responseData
               .asMap()
-              .map((index, data) =>
-              MapEntry(
-                index,
-                ActiveRequestCard(
-                  id: index,
-                  reportId: data['report_id'],
-                  name: data['resident_name'],
-                  emergencyType: data['emergency_type'],
-                  date: data['dateandTime'],
-                  locationName: data['locationName'],
-                  locationLink: data['locationLink'],
-                  phoneNumber: data['phoneNumber'],
-                  message: data['message'],
-                  residentProfile: data['residentProfile'],
-                  image: data['imageEvidence'],
-                ),
-              ))
+              .map((index, data) => MapEntry(
+            index,
+            AcceptedReportsCard(
+              id: index,
+              reportId: data['report_id'],
+              name: data['resident_name'],
+              emergencyType: data['emergency_type'],
+              date: data['dateandTime'],
+              locationName: data['locationName'],
+              locationLink: data['locationLink'],
+              phoneNumber: data['phoneNumber'],
+              message: data['message'],
+              residentProfile: data['residentProfile'],
+              image: data['imageEvidence'],
+            ),
+          ))
               .values
               .toList();
 
           // Check if the lists are different
-          if (!listEquals(activeRequestList, currentFetch)) {
+          if (!listEquals(acceptedReportslist, currentFetch)) {
             // Calculate new items count
             int newItemsCountInCurrentFetch = currentFetch.length -
-                activeRequestList.length;
+                acceptedReportslist.length;
 
             if (newItemsCountInCurrentFetch > 0) {
               // New items are added
@@ -216,11 +195,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
             }
 
             // Update the activeRequestList
-            activeRequestList = currentFetch;
+            acceptedReportslist = currentFetch;
 
             // Save the new length
-            savePreviousListLength(activeRequestList.length);
-            updatePreviousListLength(activeRequestList.length);
+            savePreviousListLength(acceptedReportslist.length);
           }
         });
       } else {
@@ -231,21 +209,15 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     }
   }
 
-
-
-  removeItem(int index, String reportId)  {
+  removeItem(int index, String reportId) {
     setState(() {
       // Remove the item from the list
-      activeRequestList.removeAt(index);
+      acceptedReportslist.removeAt(index);
       insertData();
-      // Update the previous list length and notify the parent widget
-      savePreviousListLength(activeRequestList.length);
-      updatePreviousListLength(activeRequestList.length);
+      // Update the previous list length
+      savePreviousListLength(acceptedReportslist.length);
     });
-
-
   }
-
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -253,7 +225,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     print('Loaded Previous List Length: $savedPreviousListLength');
     setState(() {
       previousListLength = savedPreviousListLength;
-      widget.updatePreviousListLength(previousListLength); // Call the callback function
     });
   }
 
@@ -268,15 +239,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Active Reports'),
+        title: Text('Accepted Reports'),
       ),
       body: ListView.builder(
-        itemCount: activeRequestList.length,
+        itemCount: acceptedReportslist.length,
         itemBuilder: (context, index) {
           return _buildActiveRequestCard(index);
         },
@@ -285,13 +255,13 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   Widget _buildActiveRequestCard(int index) {
-     activeRequestCard = activeRequestList[index];
+    acceptedReportsCard = acceptedReportslist[index];
 
     if (index >= previousListLength) {
       newItemsCount++;
     }
 
-    Key cardKey = Key('activeRequestCard_$index');
+    Key cardKey = Key('acceptedReportsCard_$index');
 
     return KeyedSubtree(
       key: cardKey,
@@ -313,40 +283,18 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
               ListTile(
                 leading: ClipOval(
                   child: CachedMemoryImage(
-                    uniqueKey: 'app://imageProfile/${activeRequestCard?.reportId}',
-                    base64: activeRequestCard?.residentProfile,
+                    uniqueKey:
+                    'app://imageProfile/${acceptedReportsCard?.reportId}',
+                    base64: acceptedReportsCard?.residentProfile,
                   ),
                 ),
-                title: Text(activeRequestCard!.name),
+                title: Text(acceptedReportsCard!.name),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Emergency Type: ${activeRequestCard?.emergencyType}'),
-                    Text('Date: ${activeRequestCard?.date}'),
+                    Text('Emergency Type: ${acceptedReportsCard?.emergencyType}'),
+                    Text('Date: ${acceptedReportsCard?.date}'),
                   ],
-                ),
-                trailing: GestureDetector(
-                  onTap: () {
-                    AwesomeDialog(
-                      context: context,
-                      dialogType: DialogType.warning,
-                      animType: AnimType.rightSlide,
-                      btnOkColor: Color.fromRGBO(51, 71, 246, 1),
-                      title: 'Confirm Rescue',
-                      desc: 'Are you sure you want to accept this report? ',
-                      btnCancelOnPress: () {},
-                      btnOkOnPress: () {
-                        removeItem(index, activeRequestCard!.reportId);
-                      },
-
-                      dismissOnTouchOutside: false,
-                    )..show();
-                  },
-                  child: Icon(
-                    Icons.check,
-                    color: Colors.green,
-                    size: 30.0,
-                  ),
                 ),
               ),
               Container(
@@ -366,7 +314,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                           children: [
                             Text('Location Name: ',),
                             SizedBox(width: 5.0,),
-                            Flexible(child: Text(activeRequestCard?.locationName, softWrap: true)),
+                            Flexible(child: Text(acceptedReportsCard?.locationName, softWrap: true)),
                           ],
                         ),
                         SizedBox(height: 5.0,),
@@ -377,10 +325,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                             Flexible(
                               child: GestureDetector(
                                 onTap: () {
-                                  launch(activeRequestCard?.locationLink);
+                                  launch(acceptedReportsCard?.locationLink);
                                 },
                                 child: Text(
-                                  '${activeRequestCard?.locationLink}',
+                                  '${acceptedReportsCard?.locationLink}',
                                   softWrap: true,
                                   style: TextStyle(
                                     color: Colors.blue,
@@ -394,14 +342,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                         SizedBox(height: 5.0,),
                         GestureDetector(
                           onTap: () {
-                            launch('tel:+${activeRequestCard?.phoneNumber}');
+                            launch('tel:+${acceptedReportsCard?.phoneNumber}');
                           },
                           child: Row(
                             children: [
                               Text('Phone Number: '),
                               SizedBox(width: 5.0,),
                               Text(
-                                '+${activeRequestCard?.phoneNumber}',
+                                '+${acceptedReportsCard?.phoneNumber}',
                                 style: TextStyle(
                                   color: Colors.blue,
                                   decoration: TextDecoration.underline,
@@ -415,16 +363,16 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                           children: [
                             Text('Message: ',),
                             SizedBox(width: 5.0,),
-                            Flexible(child: Text(activeRequestCard?.message, softWrap: true)),
+                            Flexible(child: Text(acceptedReportsCard?.message, softWrap: true)),
                           ],
                         ),
                         SizedBox(height: 10.0,),
                         Container(
                           alignment: Alignment.center,
-                          child: activeRequestCard?.image != null
+                          child: acceptedReportsCard?.image != null
                               ? CachedMemoryImage(
-                            uniqueKey: 'app://image/${activeRequestCard?.reportId}',
-                            base64: activeRequestCard?.image,
+                            uniqueKey: 'app://image/${acceptedReportsCard?.reportId}',
+                            base64: acceptedReportsCard?.image,
                           )
                               : Placeholder(),
                         ),
@@ -439,7 +387,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       ),
     );
   }
+
 }
+
 Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';

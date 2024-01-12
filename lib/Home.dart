@@ -1,7 +1,7 @@
-import 'package:e_ligtas_sector/NavigationPages/CenterButtonWidget.dart';
+import 'package:e_ligtas_sector/NavigationPages/Accepted_Reports.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'NavigationPages/Active_Request.dart';
+import 'NavigationPages/Active_Requests.dart';
 import 'login_page.dart';
 import 'package:badges/badges.dart'as badges;
 
@@ -69,27 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _getBody(int index) {
     switch (index) {
       case 0:
-        return FutureBuilder<String>(
-          future: getUserEmail(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              String userEmail = snapshot.data ?? '';
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Welcome to the Home Screen!'),
-                    SizedBox(height: 16.0),
-                    Text('User Email: $userEmail'),
-                    // Add your user-related widgets here
-                  ],
-                ),
-              );
-            } else {
-              return Center(child: CircularProgressIndicator());
-            }
-          },
-        );
+        return AcceptedReportsScreen();
       case 1:
         return ActiveRequestScreen(
           updatePreviousListLength: (length) {
@@ -101,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 2:
-        return CenteredButtonWidget();
+        return Center(child: Text("Hi"),);
       default:
         return Container();
     }
