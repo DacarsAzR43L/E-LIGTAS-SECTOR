@@ -213,6 +213,11 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     );
   }
 
+  String getTrimmedDate(String fullDate) {
+    // Assuming fullDate has the format 'yyyy-MM-dd HH:mm:ss.SSSSSS'
+    return fullDate.split(' ')[0];
+  }
+
   Widget _buildActiveRequestCard(int index) {
     acceptedReportsCard = acceptedReportslist[index];
 
@@ -222,130 +227,167 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
     Key cardKey = Key('acceptedReportsCard_$index');
 
-    return KeyedSubtree(
-      key: cardKey,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            if (expandedCardIndex == index) {
-              expandedCardIndex = null;
-            } else {
-              expandedCardIndex = index;
-            }
-          });
-        },
-        child: Card(
+
+    // Check if the current report's date is different from the previous one
+    bool showDivider = false;
+    if (index > 0) {
+      showDivider = getTrimmedDate(acceptedReportslist[index - 1].date) !=
+          getTrimmedDate(acceptedReportsCard!.date);
+    }
+
+    // Check if the current report's date is the same as the next one
+    bool sameDateAsNext = false;
+    if (index < acceptedReportslist.length - 1) {
+      sameDateAsNext = getTrimmedDate(acceptedReportsCard!.date) ==
+          getTrimmedDate(acceptedReportslist[index + 1].date);
+    }
+
+
+
+    return Column(
+      children: [
+        if (showDivider) _buildDivider(getTrimmedDate(acceptedReportsCard!.date)),
+        KeyedSubtree(
           key: cardKey,
-          margin: EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              ListTile(
-                leading: ClipOval(
-                  child: CachedMemoryImage(
-                    uniqueKey:
-                    'app://imageProfile/${acceptedReportsCard?.reportId}',
-                    base64: acceptedReportsCard?.residentProfile,
-                  ),
-                ),
-                title: Text(acceptedReportsCard!.name),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Emergency Type: ${acceptedReportsCard?.emergencyType}'),
-                    Text('Date: ${acceptedReportsCard?.date}'),
-                  ],
-                ),
-              ),
-              Container(
-                width: 500,
-                child: Visibility(
-                  visible: expandedCardIndex == index,
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                if (expandedCardIndex == index) {
+                  expandedCardIndex = null;
+                } else {
+                  expandedCardIndex = index;
+                }
+              });
+            },
+            child: Card(
+              key: cardKey,
+              margin: EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+
+                  ListTile(
+                    leading: ClipOval(
+                      child: CachedMemoryImage(
+                        uniqueKey: 'app://imageProfile/${acceptedReportsCard?.reportId}',
+                        base64: acceptedReportsCard?.residentProfile,
+                      ),
+                    ),
+                    title: Text(acceptedReportsCard!.name),
+                    subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        SizedBox(height: 5.0,),
-                        SizedBox(height: 5.0,),
-                        Row(
-                          children: [
-                            Text('Location Name: ',),
-                            SizedBox(width: 5.0,),
-                            Flexible(child: Text(acceptedReportsCard?.locationName, softWrap: true)),
-                          ],
-                        ),
-                        SizedBox(height: 5.0,),
-                        Row(
-                          children: [
-                            Text('Location Link: ', style: TextStyle(color: Colors.black)),
-                            SizedBox(width: 5.0,),
-                            Flexible(
-                              child: GestureDetector(
-                                onTap: () {
-                                  launch(acceptedReportsCard?.locationLink);
-                                },
-                                child: Text(
-                                  '${acceptedReportsCard?.locationLink}',
-                                  softWrap: true,
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 5.0,),
-                        GestureDetector(
-                          onTap: () {
-                            launch('tel:+${acceptedReportsCard?.phoneNumber}');
-                          },
-                          child: Row(
-                            children: [
-                              Text('Phone Number: '),
-                              SizedBox(width: 5.0,),
-                              Text(
-                                '+${acceptedReportsCard?.phoneNumber}',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 5.0,),
-                        Row(
-                          children: [
-                            Text('Message: ',),
-                            SizedBox(width: 5.0,),
-                            Flexible(child: Text(acceptedReportsCard?.message, softWrap: true)),
-                          ],
-                        ),
-                        SizedBox(height: 10.0,),
-                        Container(
-                          alignment: Alignment.center,
-                          child: acceptedReportsCard?.image != null
-                              ? CachedMemoryImage(
-                            uniqueKey: 'app://image/${acceptedReportsCard?.reportId}',
-                            base64: acceptedReportsCard?.image,
-                          )
-                              : Placeholder(),
-                        ),
+                        Text('Emergency Type: ${acceptedReportsCard?.emergencyType}'),
+                        Text('Date: ${acceptedReportsCard?.date}'),
                       ],
                     ),
                   ),
-                ),
+                  Container(
+                    width: 500,
+                    child: Visibility(
+                      visible: expandedCardIndex == index,
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                            SizedBox(height: 5.0),
+                            SizedBox(height: 5.0,),
+                            Row(
+                              children: [
+                                Text('Location Name: '),
+                                SizedBox(width: 5.0),
+                                Flexible(child: Text(acceptedReportsCard?.locationName, softWrap: true)),
+                              ],
+                            ),
+                            SizedBox(height: 5.0),
+                            Row(
+                              children: [
+                                Text('Location Link: ', style: TextStyle(color: Colors.black)),
+                                SizedBox(width: 5.0),
+                                Flexible(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      launch(acceptedReportsCard?.locationLink);
+                                    },
+                                    child: Text(
+                                      '${acceptedReportsCard?.locationLink}',
+                                      softWrap: true,
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 5.0),
+                            // ... Other details
+                            GestureDetector(
+                              onTap: () {
+                                launch('tel:+${acceptedReportsCard?.phoneNumber}');
+                              },
+                              child: Row(
+                                children: [
+                                  Text('Phone Number: '),
+                                  SizedBox(width: 5.0),
+                                  Text(
+                                    '+${acceptedReportsCard?.phoneNumber}',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 5.0),
+                            // ... Other details
+                            Row(
+                              children: [
+                                Text('Message: '),
+                                SizedBox(width: 5.0),
+                                Flexible(child: Text(acceptedReportsCard?.message, softWrap: true)),
+                              ],
+                            ),
+                            SizedBox(height: 10.0),
+                            Container(
+                              alignment: Alignment.center,
+                              child: acceptedReportsCard?.image != null
+                                  ? CachedMemoryImage(
+                                uniqueKey: 'app://image/${acceptedReportsCard?.reportId}',
+                                base64: acceptedReportsCard?.image,
+                              )
+                                  : Placeholder(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
+        ),
+      ],
+    );
+  }
+  Widget _buildDivider(String date) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      color: Colors.grey[300],
+      child: Text(
+        date,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
+
 
 }
 

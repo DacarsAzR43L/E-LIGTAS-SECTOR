@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:isolate';
+import 'package:e_ligtas_sector/CustomDialog/LoginSuccessDialog.dart';
 import 'dart:ui';
 
 
@@ -333,6 +333,13 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                       btnCancelOnPress: () {},
                       btnOkOnPress: () {
                         removeItem(index, activeRequestCard!.reportId);
+
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return LoginSuccessDialog();
+                          },
+                        );
                       },
 
                       dismissOnTouchOutside: false,
