@@ -227,9 +227,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
     Key cardKey = Key('acceptedReportsCard_$index');
 
-
     // Check if the current report's date is different from the previous one
-    bool showDivider = false;
+    bool showDivider = true; // Show divider by default
     if (index > 0) {
       showDivider = getTrimmedDate(acceptedReportslist[index - 1].date) !=
           getTrimmedDate(acceptedReportsCard!.date);
@@ -241,8 +240,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       sameDateAsNext = getTrimmedDate(acceptedReportsCard!.date) ==
           getTrimmedDate(acceptedReportslist[index + 1].date);
     }
-
-
 
     return Column(
       children: [
@@ -264,7 +261,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
               margin: EdgeInsets.all(8.0),
               child: Column(
                 children: [
-
                   ListTile(
                     leading: ClipOval(
                       child: CachedMemoryImage(
@@ -293,7 +289,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
                           children: [
                             Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
                             SizedBox(height: 5.0),
-                            SizedBox(height: 5.0,),
+                            SizedBox(height: 5.0),
                             Row(
                               children: [
                                 Text('Location Name: '),
@@ -324,7 +320,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
                               ],
                             ),
                             SizedBox(height: 5.0),
-                            // ... Other details
                             GestureDetector(
                               onTap: () {
                                 launch('tel:+${acceptedReportsCard?.phoneNumber}');
@@ -344,7 +339,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
                               ),
                             ),
                             SizedBox(height: 5.0),
-                            // ... Other details
                             Row(
                               children: [
                                 Text('Message: '),
@@ -375,6 +369,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       ],
     );
   }
+
   Widget _buildDivider(String date) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
