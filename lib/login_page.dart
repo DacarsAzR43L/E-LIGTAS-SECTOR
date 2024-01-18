@@ -5,8 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:sizer/sizer.dart';
-
-import 'CustomDialog/LoginSuccessDialog.dart';
+import 'package:e_ligtas_sector/CustomDialog/LoginSuccessDialog.dart';
 import 'Home.dart';
 
 class LoginPage extends StatefulWidget {

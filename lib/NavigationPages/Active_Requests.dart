@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:e_ligtas_sector/CustomDialog/LoginSuccessDialog.dart';
+import 'package:e_ligtas_sector/CustomDialog/AcceptReportDialog.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'dart:ui';
 
 
@@ -38,6 +40,7 @@ class ActiveRequestCard {
     required this.locationName,
   });
 }
+
 
 class ActiveRequestScreen extends StatefulWidget {
   final Function(int) updatePreviousListLength;
@@ -79,6 +82,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   void initState() {
     super.initState();
 
+     initializeService();
+
     fetchData();
 
 
@@ -88,6 +93,49 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       fetchData();
     });
   }
+
+
+  Future<void> initializeService() async {
+
+    final service = FlutterBackgroundService();
+
+    await service.configure(
+        iosConfiguration: IosConfiguration(),
+        androidConfiguration: AndroidConfiguration(
+            onStart: onStart,
+            isForegroundMode: true,
+        ));
+    await service.startService();
+}
+
+  @pragma('vm:entry-point')
+
+  void onStart(ServiceInstance service) async {
+    // Only available for flutter 3.0.0 and later
+    DartPluginRegistrant.ensureInitialized();
+
+    // For flutter prior to version 3.0.0
+    // We have to register the plugin manually
+
+
+    if (service is AndroidServiceInstance) {
+      service.on('setAsForeground').listen((event) {
+        service.setAsForegroundService();
+      });
+
+      service.on('setAsBackground').listen((event) {
+        service.setAsBackgroundService();
+      });
+    }
+
+    service.on('stopService').listen((event) {
+      service.stopSelf();
+    });
+
+
+
+  }
+
 
   Future<void> fetchDataFromPHP(String email) async {
     final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
@@ -271,7 +319,11 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       appBar: AppBar(
         title: Text('Active Reports'),
       ),
-      body: ListView.builder(
+      body: activeRequestList.isEmpty
+          ? Center(
+        child: Text('No active reports available.'),
+      )
+          : ListView.builder(
         itemCount: activeRequestList.length,
         itemBuilder: (context, index) {
           return _buildActiveRequestCard(index);
@@ -337,7 +389,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                         showDialog(
                           context: context,
                           builder: (context) {
-                            return LoginSuccessDialog();
+                            return AcceptReportDialog();
                           },
                         );
                       },

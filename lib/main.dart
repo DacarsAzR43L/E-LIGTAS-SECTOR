@@ -24,9 +24,8 @@ class MyApp extends StatelessWidget {
         home: FutureBuilder<bool>(
           future: checkLoggedInStatus(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              // Loading state
-              return CircularProgressIndicator();
+            if (snapshot.hasError) {
+              return Container();
             } else {
               // Check if the user is logged in or not
               bool isLoggedIn = snapshot.data ?? false;

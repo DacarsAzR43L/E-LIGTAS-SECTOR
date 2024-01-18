@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:isolate';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 import 'dart:ui';
 
 class AcceptedReportsCard {
@@ -55,7 +56,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   String responderName = '';
   String userFrom = '';
 
-
+  bool isLoading = true;
+  bool hasData = true;
 
 
   @override
@@ -95,6 +97,11 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
 
   Future<void> fetchData() async {
+    // Set loading to true when fetching data starts
+    setState(() {
+      isLoading = true;
+      hasData = true;
+    });
 
     final String apiUrl =
         'http://192.168.100.7/e-ligtas-sector/get_accepted_reports.php';
@@ -150,6 +157,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
             if (newItemsCountInCurrentFetch > 0) {
               // New items are added
+              isLoading = false;
               print('New items added!');
               print(
                   'New items count in current fetch: $newItemsCountInCurrentFetch');
@@ -167,6 +175,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
             // Save the new length
             savePreviousListLength(acceptedReportslist.length);
+          } else {
+            isLoading =false;
+            hasData = false;
           }
         });
       } else {
@@ -176,6 +187,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       print('Error: $error');
     }
   }
+
 
 
 
@@ -193,6 +205,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     prefs.setInt('previousListLength', length);
   }
 
+
+
+
   @override
   void dispose() {
     super.dispose();
@@ -204,11 +219,19 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       appBar: AppBar(
         title: Text('Accepted Reports'),
       ),
-      body: ListView.builder(
+      body:  isLoading
+          ? Center(
+        child: CircularProgressIndicator(), // Show loading indicator
+      )
+          : hasData
+          ? ListView.builder(
         itemCount: acceptedReportslist.length,
         itemBuilder: (context, index) {
           return _buildActiveRequestCard(index);
         },
+      )
+          : Center(
+        child: Text('No data available'), // Show no data text
       ),
     );
   }
@@ -390,3 +413,4 @@ Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }
+
