@@ -9,8 +9,11 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_ligtas_sector/CustomDialog/AcceptReportDialog.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+
 import 'dart:ui';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import '../local_notifications.dart';
 
 
 class ActiveRequestCard {
@@ -82,8 +85,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   void initState() {
     super.initState();
 
-     initializeService();
-
     fetchData();
 
 
@@ -94,47 +95,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     });
   }
 
-
-  Future<void> initializeService() async {
-
-    final service = FlutterBackgroundService();
-
-    await service.configure(
-        iosConfiguration: IosConfiguration(),
-        androidConfiguration: AndroidConfiguration(
-            onStart: onStart,
-            isForegroundMode: true,
-        ));
-    await service.startService();
-}
-
-  @pragma('vm:entry-point')
-
-  void onStart(ServiceInstance service) async {
-    // Only available for flutter 3.0.0 and later
-    DartPluginRegistrant.ensureInitialized();
-
-    // For flutter prior to version 3.0.0
-    // We have to register the plugin manually
-
-
-    if (service is AndroidServiceInstance) {
-      service.on('setAsForeground').listen((event) {
-        service.setAsForegroundService();
-      });
-
-      service.on('setAsBackground').listen((event) {
-        service.setAsBackgroundService();
-      });
-    }
-
-    service.on('stopService').listen((event) {
-      service.stopSelf();
-    });
-
-
-
-  }
 
 
   Future<void> fetchDataFromPHP(String email) async {
@@ -200,6 +160,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
   Future<void> fetchData() async {
+
+
+
     final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
 
     // Get the user email
@@ -246,7 +209,12 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                 activeRequestList.length;
 
             if (newItemsCountInCurrentFetch > 0) {
-              // New items are added
+
+              LocalNotifications.showSimpleNotification(
+                  title: "Simple Notification",
+                  body: "This is a simple notification",
+                  payload: "This is simple data");
+
               print('New items added!');
               print(
                   'New items count in current fetch: $newItemsCountInCurrentFetch');

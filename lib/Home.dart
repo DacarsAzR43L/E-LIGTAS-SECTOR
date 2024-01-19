@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'NavigationPages/Active_Requests.dart';
 import 'login_page.dart';
 import 'package:badges/badges.dart'as badges;
-
+import 'package:e_ligtas_sector/NavigationPages/Manual_Reports.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 2:
-        return Center(child: Text("Hi"),);
+        return ManualReports();
       default:
         return Container();
     }
