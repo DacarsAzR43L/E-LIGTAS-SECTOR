@@ -1,16 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_memory_image/cached_memory_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sqflite/sqflite.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_ligtas_sector/CustomDialog/AcceptReportDialog.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'dart:ui';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../local_notifications.dart';
@@ -62,11 +65,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   int? expandedCardIndex;
   List<ActiveRequestCard> activeRequestList = [];
   late Timer _timer;
+  late Database _database;
   int newItemsCount = 0;
   String status ="1";
   int previousListLength;
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
+  final String _tableName = 'active_requests';
+
 
   //Responder Info
   String responderName = '';
@@ -85,8 +91,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   void initState() {
     super.initState();
 
-    fetchData();
 
+    initDatabase();
+    fetchData();
 
     // Start the timer in initState
    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
@@ -94,6 +101,37 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       fetchData();
     });
   }
+
+
+  Future<void> initDatabase() async {
+    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    String path = '${documentsDirectory.path}/your_database.db';
+
+    _database = await openDatabase(
+      path,
+      onCreate: (db, version) {
+        return db.execute(
+          '''
+        CREATE TABLE $_tableName (
+          id INTEGER PRIMARY KEY,
+          reportId TEXT,
+          name TEXT,
+          emergencyType TEXT,
+          date TEXT,
+          locationName TEXT,
+          locationLink TEXT,
+          phoneNumber TEXT,
+          message TEXT,
+          residentProfile BLOB,
+          image BLOB
+        )
+        ''',
+        );
+      },
+      version: 1,
+    );
+  }
+
 
 
 
@@ -159,91 +197,107 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
+
+  // Fetch data from the server and update local database
   Future<void> fetchData() async {
-
-
-
-    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
-
-    // Get the user email
-    String userEmail = await getUserEmail();
-
-    // Call fetchDataFromPHP with the user email
-    await fetchDataFromPHP(userEmail);
-
-    print(userEmail);
-
     try {
+      // Your API endpoint
+      final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
+
+      // Perform the HTTP GET request
       final response = await http.get(Uri.parse(apiUrl));
 
+      // Check if the response is successful and the widget is still mounted
       if (response.statusCode == 200 && mounted) {
+        // Decode the response body
         final List<dynamic> responseData = json.decode(response.body);
 
-        setState(() {
-          List<ActiveRequestCard> currentFetch = responseData
-              .asMap()
-              .map((index, data) =>
-              MapEntry(
-                index,
-                ActiveRequestCard(
-                  id: index,
-                  reportId: data['report_id'],
-                  name: data['resident_name'],
-                  emergencyType: data['emergency_type'],
-                  date: data['dateandTime'],
-                  locationName: data['locationName'],
-                  locationLink: data['locationLink'],
-                  phoneNumber: data['phoneNumber'],
-                  message: data['message'],
-                  residentProfile: data['residentProfile'],
-                  image: data['imageEvidence'],
-                ),
-              ))
-              .values
-              .toList();
+        // Convert the server response to a list of ActiveRequestCard objects
+        List<ActiveRequestCard> currentFetch = responseData
+            .asMap()
+            .map((index, data) => MapEntry(
+          index,
+          ActiveRequestCard(
+            id: index,
+            reportId: data['report_id'],
+            name: data['resident_name'],
+            emergencyType: data['emergency_type'],
+            date: data['dateandTime'],
+            locationName: data['locationName'],
+            locationLink: data['locationLink'],
+            phoneNumber: data['phoneNumber'],
+            message: data['message'],
+            residentProfile: data['residentProfile'],
+            image: data['imageEvidence'],
+          ),
+        ))
+            .values
+            .toList();
 
-          // Check if the lists are different
-          if (!listEquals(activeRequestList, currentFetch)) {
-            // Calculate new items count
-            int newItemsCountInCurrentFetch = currentFetch.length -
-                activeRequestList.length;
-
-            if (newItemsCountInCurrentFetch > 0) {
-
-              LocalNotifications.showSimpleNotification(
-                  title: "Simple Notification",
-                  body: "This is a simple notification",
-                  payload: "This is simple data");
-
-              print('New items added!');
-              print(
-                  'New items count in current fetch: $newItemsCountInCurrentFetch');
-
-              // Update the total new items count
-              newItemsCount += newItemsCountInCurrentFetch;
-              print(newItemsCount);
-            } else {
-              // No new items, set newItemsCount to 0
-              newItemsCount = 0;
-            }
-
-            // Update the activeRequestList
-            activeRequestList = currentFetch;
-
-            // Save the new length
-            savePreviousListLength(activeRequestList.length);
-            updatePreviousListLength(activeRequestList.length);
-          }
-        });
+        // Check if the lists are different
+        if (!listEquals(activeRequestList, currentFetch)) {
+          // Compare and update the local database
+          compareAndUpdateDatabase(currentFetch);
+        }
       } else {
+        // Handle error if the HTTP request is not successful
         print('Error: ${response.reasonPhrase}');
       }
     } catch (error) {
+      // Handle other errors
       print('Error: $error');
     }
   }
 
+  // Compare the new data with the local database and update if necessary
+  Future<void> compareAndUpdateDatabase(List<ActiveRequestCard> currentFetch) async {
+    // Retrieve data from the local database
+    List<Map<String, dynamic>> localData = await _database.query(_tableName);
 
+    // Perform the comparison and update the database
+    // For simplicity, assuming 'reportId' is a unique identifier
+    for (var newItem in currentFetch) {
+      if (!localData.any((element) => element['reportId'] == newItem.reportId)) {
+        // New item found, perform necessary actions
+        // For example, show a notification
+        LocalNotifications.showSimpleNotification(
+          title: "New Item Notification",
+          body: "A new item has been added!",
+          payload: "New item data: ${newItem.reportId}",
+        );
+
+        // Convert image data to bytes
+        List<int> residentProfileBytes = base64Decode(newItem.residentProfile);
+        List<int> imageBytes = base64Decode(newItem.image);
+
+        // Update the local database
+        await _database.insert(
+          _tableName,
+          {
+            'reportId': newItem.reportId,
+            'name': newItem.name,
+            'emergencyType': newItem.emergencyType,
+            'date': newItem.date,
+            'locationName': newItem.locationName,
+            'locationLink': newItem.locationLink,
+            'phoneNumber': newItem.phoneNumber,
+            'message': newItem.message,
+            'residentProfile': residentProfileBytes,
+            'image': imageBytes,
+          },
+        );
+      }
+    }
+
+    // Update the activeRequestList
+    activeRequestList = currentFetch;
+
+    // Save the new length
+    savePreviousListLength(activeRequestList.length);
+
+    // Update the previous list length
+    updatePreviousListLength(activeRequestList.length);
+  }
 
   removeItem(int index, String reportId)  {
     setState(() {

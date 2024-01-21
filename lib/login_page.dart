@@ -190,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: CircleAvatar(
                     backgroundImage: AssetImage('Assets/appIcon.png'),
-                    radius: 100.0,
+                    radius: 15.w,
                   ),
                 ),
 
@@ -219,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 Container(
                   width: 100.w,
-                  height: 33.0.h,
+                  height: 37.0.h,
                   alignment: Alignment.center,
                   //decoration: BoxDecoration(
                   //color: Colors.white,
