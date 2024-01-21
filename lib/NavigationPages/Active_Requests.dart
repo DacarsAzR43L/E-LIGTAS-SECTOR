@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_memory_image/cached_memory_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -72,6 +73,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
   final String _tableName = 'active_requests';
+  bool hasInternetConnection = false;
 
 
   //Responder Info
@@ -92,20 +94,41 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     super.initState();
 
 
-    initDatabase();
-    fetchData();
+    checkInternetConnectionAndInit();
+  }
 
-    // Start the timer in initState
-   _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+  Future<void> checkInternetConnectionAndInit() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      // No internet connection, load from local database
+      await initDatabase();
+      await loadFromLocalDatabase();
+    } else {
+      // Internet connection is available, initialize the database and start the timer
+      await initDatabase();
+      print("Intialize DATABASE");
+      setState(() {
+        hasInternetConnection = true;
+      });
+      fetchData();
+      startTimer();
+    }
+  }
 
+  void startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       fetchData();
     });
   }
 
+  Future<bool> hasInternet() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult != ConnectivityResult.none;
+  }
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/your_database.db';
+    String path = '${documentsDirectory.path}/active_requests.db';
 
     _database = await openDatabase(
       path,
@@ -200,6 +223,15 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
   // Fetch data from the server and update local database
   Future<void> fetchData() async {
+
+    // Get the user email
+    String userEmail = await getUserEmail();
+
+    // Call fetchDataFromPHP with the user email
+    await fetchDataFromPHP(userEmail);
+
+    print(userEmail);
+
     try {
       // Your API endpoint
       final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
@@ -241,11 +273,11 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         }
       } else {
         // Handle error if the HTTP request is not successful
-        print('Error: ${response.reasonPhrase}');
+        await loadFromLocalDatabase();
       }
     } catch (error) {
       // Handle other errors
-      print('Error: $error');
+      await loadFromLocalDatabase();
     }
   }
 
@@ -298,6 +330,41 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     // Update the previous list length
     updatePreviousListLength(activeRequestList.length);
   }
+
+
+  Future<void> loadFromLocalDatabase() async {
+    // Load data from the local database
+    List<Map<String, dynamic>> result = await _database.query(_tableName);
+
+    setState(() {
+      List<ActiveRequestCard> currentFetch = result
+          .map((data) => ActiveRequestCard(
+        id: data['id'],
+        reportId: data['reportId'],
+        name: data['name'],
+        emergencyType: data['emergencyType'],
+        date: data['date'],
+        locationName: data['locationName'],
+        locationLink: data['locationLink'],
+        phoneNumber: data['phoneNumber'],
+        message: data['message'],
+        residentProfile: base64Encode(data['residentProfile']),
+        image: base64Encode(data['image']),
+      ))
+          .toList();
+
+      // Update the activeRequestList
+      activeRequestList = currentFetch;
+
+      // Save the new length
+      savePreviousListLength(activeRequestList.length);
+
+      // Update the previous list length
+      updatePreviousListLength(activeRequestList.length);
+    });
+  }
+
+
 
   removeItem(int index, String reportId)  {
     setState(() {
