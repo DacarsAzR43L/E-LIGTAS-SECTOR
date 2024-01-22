@@ -204,6 +204,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
         if (responseData['success'] == true) {
           print('Data inserted successfully');
+
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AcceptReportDialog();
+            },
+          );
+
         } else {
           print('Error: ${responseData['message']}');
           print('Status: $status');
@@ -286,6 +294,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     // Retrieve data from the local database
     List<Map<String, dynamic>> localData = await _database.query(_tableName);
 
+    // Delete all data from the local database
+
+
     // Perform the comparison and update the database
     // For simplicity, assuming 'reportId' is a unique identifier
     for (var newItem in currentFetch) {
@@ -366,19 +377,47 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
 
-  removeItem(int index, String reportId)  {
-    setState(() {
-      // Remove the item from the list
-      activeRequestList.removeAt(index);
-      insertData();
-      // Update the previous list length and notify the parent widget
-      savePreviousListLength(activeRequestList.length);
-      updatePreviousListLength(activeRequestList.length);
-    });
+  Future<void> removeItem(int index, String reportId) async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
 
+    if (connectivityResult != ConnectivityResult.none) {
+      // There is an internet connection, perform operations
+      setState(() {
+        // Remove the item from the list
+        activeRequestList.removeAt(index);
+        insertData();
+        // Update the previous list length and notify the parent widget
+        savePreviousListLength(activeRequestList.length);
+        updatePreviousListLength(activeRequestList.length);
+      });
 
+      // Delete the corresponding record from the local database
+      await _database.delete(
+        _tableName,
+        where: 'reportId = ?',
+        whereArgs: [reportId],
+      );
+    } else {
+      // No internet connection, show a dialog or perform other actions
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('No Internet Connection'),
+            content: Text('Please check your internet connection and try again.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
-
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -474,13 +513,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                       btnCancelOnPress: () {},
                       btnOkOnPress: () {
                         removeItem(index, activeRequestCard!.reportId);
-
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AcceptReportDialog();
-                          },
-                        );
                       },
 
                       dismissOnTouchOutside: false,
