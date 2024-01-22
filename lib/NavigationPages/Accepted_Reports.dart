@@ -202,37 +202,41 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
           // Reverse the order of the list
           currentFetch = currentFetch.reversed.toList();
 
+          // Print a message before deleting the previous data
+          print('Deleting previous data in the local database...');
 
-          // Check if the lists are different
-          if (!listEquals(acceptedReportslist, currentFetch)) {
+          // Start a database transaction to delete previous data
+          _database.transaction((txn) async {
+            // Delete all previous data from the local database
+             txn.delete('accepted_reports2');
+            print('Previous data deleted successfully');
+          });
+
+          // Check if there are new items
+          if (currentFetch.isNotEmpty) {
             // Calculate new items count
-            int newItemsCountInCurrentFetch =
-                currentFetch.length - acceptedReportslist.length;
+            int newItemsCountInCurrentFetch = currentFetch.length;
 
-            if (newItemsCountInCurrentFetch > 0) {
-              // New items are added
-              isLoading = false;
-              print('New items added!');
-              print(
-                  'New items count in current fetch: $newItemsCountInCurrentFetch');
+            // New items are added
+            isLoading = false;
+            print('New items added!');
+            print('New items count in current fetch: $newItemsCountInCurrentFetch');
 
-              // Update the total new items count
-              newItemsCount += newItemsCountInCurrentFetch;
-              print(newItemsCount);
-            } else {
-              // No new items, set newItemsCount to 0
-              newItemsCount = 0;
-            }
+            // Update the total new items count
+            newItemsCount += newItemsCountInCurrentFetch;
+            print(newItemsCount);
 
-            // Update the acceptedReportslist with the reversed list
+            // Print a message before inserting new data
+            print('Inserting new data into the local database...');
+
             acceptedReportslist = currentFetch;
 
-            // Save the new length
-            savePreviousListLength(acceptedReportslist.length);
-
             // Insert new data into the local database
-            insertNewDataIntoDatabase();
+            updateLocalDatabase(currentFetch);
+
+            print('Data insertion completed');
           } else {
+            // No new items
             isLoading = false;
             hasData = false;
           }
@@ -246,15 +250,16 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   }
 
 
-  Future<void> insertNewDataIntoDatabase() async {
+
+
+
+
+  Future<void> updateLocalDatabase(List<AcceptedReportsCard> currentFetch) async {
     try {
       // Start a database transaction
       await _database.transaction((txn) async {
-        // Delete all previous data in the local database
-        await txn.delete('accepted_reports2');
-
         // Insert new data into the local database
-        for (var newItem in acceptedReportslist) {
+        for (var newItem in currentFetch) {
           // Add additional checks and logging
           print('Inserting new data for reportId: ${newItem.reportId}');
 
@@ -295,9 +300,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       print('Error updating local database: $e');
     }
   }
-
-
-
 
 
 

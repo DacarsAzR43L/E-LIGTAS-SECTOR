@@ -13,12 +13,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await LocalNotifications.init();
-  await initializeService();
+  //await initializeService();
 
   runApp(MyApp());
 }
 
-Future<void> initializeService() async {
+/*Future<void> initializeService() async {
   final service = FlutterBackgroundService();
 
   await service.configure(
@@ -29,11 +29,11 @@ Future<void> initializeService() async {
       )
   );
 await service.startService();
-}
+}*/
 
-@pragma('vm:entry-point')
+//@pragma('vm:entry-point')
 
-void onStart(ServiceInstance service) async{
+/*void onStart(ServiceInstance service) async{
 
   if(service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
@@ -64,7 +64,7 @@ void onStart(ServiceInstance service) async{
 
 
 
-    }
+    }*/
 
 
 
