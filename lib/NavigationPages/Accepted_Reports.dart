@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_memory_image/cached_memory_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:ui';
 
 class AcceptedReportsCard {
@@ -19,8 +21,8 @@ class AcceptedReportsCard {
   final locationLink;
   final phoneNumber;
   final message;
-  final residentProfile;
-  final image;
+  final String residentProfile;
+  final String image;
   final locationName;
   final reportId;
 
@@ -49,6 +51,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   List<AcceptedReportsCard> acceptedReportslist = [];
   int newItemsCount = 0;
   String status = "1";
+  late Database _database;
+  bool isConnectedToInternet = false;
   int previousListLength =0;
   AcceptedReportsCard? acceptedReportsCard;
 
@@ -64,9 +68,58 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   void initState() {
     super.initState();
 
-    fetchData();
-
+    // Initialize the database and check for internet connection
+    initDatabase().then((_) {
+      checkInternetConnection().then((isConnected) {
+        // Fetch data only if there is an internet connection
+        if (isConnectedToInternet) {
+          fetchData();
+        } else {
+          initDatabase();
+          loadFromLocalDatabase();
+        }
+      });
+    });
   }
+
+
+  Future<void> initDatabase() async {
+    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    String path = '${documentsDirectory.path}/accepted_reports2.db';
+
+    _database = await openDatabase(
+      path,
+      onCreate: (db, version) {
+        return db.execute(
+          '''
+        CREATE TABLE accepted_reports2 (
+          id INTEGER PRIMARY KEY,
+          reportId TEXT,
+          name TEXT,
+          emergencyType TEXT,
+          date TEXT,
+          locationName TEXT,
+          locationLink TEXT,
+          phoneNumber TEXT,
+          message TEXT,
+          residentProfile TEXT,
+          image TEXT
+        )
+        ''',
+        );
+      },
+      version: 1,
+    );
+  }
+
+  Future<void> checkInternetConnection() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    setState(() {
+      isConnectedToInternet = (connectivityResult != ConnectivityResult.none);
+    });
+  }
+
+
 
   Future<void> fetchDataFromPHP(String email) async {
     final String apiUrl =
@@ -149,6 +202,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
           // Reverse the order of the list
           currentFetch = currentFetch.reversed.toList();
 
+
           // Check if the lists are different
           if (!listEquals(acceptedReportslist, currentFetch)) {
             // Calculate new items count
@@ -175,8 +229,11 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
             // Save the new length
             savePreviousListLength(acceptedReportslist.length);
+
+            // Insert new data into the local database
+            insertNewDataIntoDatabase();
           } else {
-            isLoading =false;
+            isLoading = false;
             hasData = false;
           }
         });
@@ -189,6 +246,97 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   }
 
 
+  Future<void> insertNewDataIntoDatabase() async {
+    try {
+      // Start a database transaction
+      await _database.transaction((txn) async {
+        // Delete all previous data in the local database
+        await txn.delete('accepted_reports2');
+
+        // Insert new data into the local database
+        for (var newItem in acceptedReportslist) {
+          // Add additional checks and logging
+          print('Inserting new data for reportId: ${newItem.reportId}');
+
+          if (newItem.residentProfile is String && newItem.image is String) {
+            // Convert image data to bytes
+            List<int> residentProfileBytes = base64Decode(newItem.residentProfile);
+            List<int> imageBytes = base64Decode(newItem.image);
+
+            // Ensure that the decoding was successful
+            if (residentProfileBytes.isNotEmpty && imageBytes.isNotEmpty) {
+              // Insert the new data into the local database
+              await txn.insert(
+                'accepted_reports2',
+                {
+                  'reportId': newItem.reportId,
+                  'name': newItem.name,
+                  'emergencyType': newItem.emergencyType,
+                  'date': newItem.date,
+                  'locationName': newItem.locationName,
+                  'locationLink': newItem.locationLink,
+                  'phoneNumber': newItem.phoneNumber,
+                  'message': newItem.message,
+                  'residentProfile': newItem.residentProfile,
+                  'image': newItem.image,
+                },
+              );
+            } else {
+              print('Skipping insertion for reportId ${newItem.reportId}: Failed to decode base64 data');
+            }
+          } else {
+            print('Skipping insertion for reportId ${newItem.reportId}: residentProfile and/or image is not a String');
+          }
+        }
+      });
+
+      print('Local database updated successfully');
+    } catch (e) {
+      print('Error updating local database: $e');
+    }
+  }
+
+
+
+
+
+
+
+
+  Future<void> loadFromLocalDatabase() async {
+    // Load data from the local database, ordered by date in descending order
+    List<Map<String, dynamic>> result = await _database.query(
+      'accepted_reports2',
+      orderBy: 'date DESC', // Order by date in descending order
+    );
+
+    setState(() {
+      List<AcceptedReportsCard> currentFetch = result
+          .map((data) => AcceptedReportsCard(
+        id: data['id'],
+        reportId: data['reportId'],
+        name: data['name'],
+        emergencyType: data['emergencyType'],
+        date: data['date'],
+        locationName: data['locationName'],
+        locationLink: data['locationLink'],
+        phoneNumber: data['phoneNumber'],
+        message: data['message'],
+        residentProfile: data['residentProfile'],
+        image: data['image'],
+      ))
+          .toList();
+
+      // Update the acceptedReportslist with the reversed list
+      acceptedReportslist = currentFetch;
+
+      // Save the new length
+      savePreviousListLength(acceptedReportslist.length);
+
+      // No loading, as it's local data
+      isLoading = false;
+    });
+  }
 
 
   Future<void> loadPreviousListLength() async {
