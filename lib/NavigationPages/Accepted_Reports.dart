@@ -208,7 +208,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
           // Start a database transaction to delete previous data
           _database.transaction((txn) async {
             // Delete all previous data from the local database
-             txn.delete('accepted_reports2');
+            txn.delete('accepted_reports2');
             print('Previous data deleted successfully');
           });
 
@@ -563,4 +563,3 @@ Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }
-

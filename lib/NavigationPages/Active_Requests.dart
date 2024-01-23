@@ -173,8 +173,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         Map <String,dynamic> responseData = json.decode(response.body);
 
         // Extract the values and set them in a string
-         responderName = responseData['responder_name'];
-         userFrom = responseData['userfrom'];
+        responderName = responseData['responder_name'];
+        userFrom = responseData['userfrom'];
 
 
       } else {
@@ -461,7 +461,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   Widget _buildActiveRequestCard(int index) {
-     activeRequestCard = activeRequestList[index];
+    activeRequestCard = activeRequestList[index];
 
     if (index >= previousListLength) {
       newItemsCount++;

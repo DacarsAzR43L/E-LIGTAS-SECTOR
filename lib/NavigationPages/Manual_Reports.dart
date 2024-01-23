@@ -148,7 +148,7 @@ class _ManualReportsState extends State<ManualReports> {
       if (placemarks != null && placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         setState(() {
-          _currentAddress = "${place.street}, ${place.subLocality}, ${place.locality}";
+          _currentAddress = "${place.street},${place.locality}";
         });
       } else {
         setState(() {
@@ -583,22 +583,27 @@ class _ManualReportsState extends State<ManualReports> {
       // Your API endpoint
       String apiUrl = "http://192.168.100.7/e-ligtas-sector/send_manual_reports.php";
 
-      // Sample form data
       FormData formData = FormData.fromMap({
-        'emergency_type': emergencyType,
-        'dateTime': DateTime.now().toLocal().toString(),
+        'dateandTime': DateTime.now().toLocal().toString(),
         'resident_name': name,
+        'emergency_type': emergencyType,
         'locationName': _currentAddress,
         'locationLink': locationLink,
         'phoneNumber': finalNumber,
         'message': Description,
+        'status': statusReport,
         'responder_name': responderName,
-        'userform': userFrom,
-        'imageEvidence': await MultipartFile.fromFile(_imageFile!.path, filename: 'image.jpg'),
-        'residentProfile': await MultipartFile.fromFile(_imageFile1!.path, filename: 'image.jpg'),
-        //'status': statusReport,
-
+        'userfrom': userFrom,
+        'imageEvidence': await MultipartFile.fromFile(
+          _imageFile!.path,
+          filename: 'image.jpg',
+        ),
+        'residentProfile': await MultipartFile.fromFile(
+          _imageFile1!.path,
+          filename: 'image.jpg',
+        ),
       });
+
 
       Dio dio = Dio();
       // Send the form data with files using Dio
@@ -1085,7 +1090,10 @@ class _ManualReportsState extends State<ManualReports> {
 
                                finalNumber = mergePhoneNumber;
 
-                               print('Merged Phone Number: $mergePhoneNumber');
+                               print('Merged Phone Number: $finalNumber');
+                               print(name);
+                               print(_currentAddress);
+                               print(finalNumber);
 
                                 Uri myLink = Uri.parse("https://www.google.com/maps/search/?api=1&query=$latitude,$longitude");
                                 locationLink = myLink.toString();
