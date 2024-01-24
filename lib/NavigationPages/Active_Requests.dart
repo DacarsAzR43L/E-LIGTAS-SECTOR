@@ -12,11 +12,10 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_ligtas_sector/CustomDialog/AcceptReportDialog.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:ui';
-
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+import 'dart:typed_data';
+import 'package:background_fetch/background_fetch.dart';
 import '../local_notifications.dart';
 
 
@@ -72,7 +71,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   int previousListLength;
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
-  final String _tableName = 'active_requests';
+  final String _tableName = 'active_requests4';
   bool hasInternetConnection = false;
 
 
@@ -95,6 +94,27 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
     checkInternetConnectionAndInit();
+
+    // Initialize background fetch
+    initBackgroundFetch();
+  }
+
+  Future<void> initBackgroundFetch() async {
+    BackgroundFetch.configure(
+      BackgroundFetchConfig(
+        minimumFetchInterval: 15, // fetch data every 15 minutes
+        stopOnTerminate: false,
+        enableHeadless: true,
+        startOnBoot: true,
+        forceAlarmManager: false,
+      ),
+      fetchDataInBackground,
+    );
+  }
+
+  void fetchDataInBackground(String taskId)  {
+     startTimer();
+     BackgroundFetch.start();
   }
 
   Future<void> checkInternetConnectionAndInit() async {
@@ -128,7 +148,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/active_requests.db';
+    String path = '${documentsDirectory.path}/active_requests4.db';
 
     _database = await openDatabase(
       path,
@@ -294,9 +314,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     // Retrieve data from the local database
     List<Map<String, dynamic>> localData = await _database.query(_tableName);
 
-    // Delete all data from the local database
-
-
     // Perform the comparison and update the database
     // For simplicity, assuming 'reportId' is a unique identifier
     for (var newItem in currentFetch) {
@@ -310,25 +327,30 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         );
 
         // Convert image data to bytes
-        List<int> residentProfileBytes = base64Decode(newItem.residentProfile);
-        List<int> imageBytes = base64Decode(newItem.image);
+        List<int>? compressedResidentProfile = await compressImage(base64Decode(newItem.residentProfile));
+        List<int>? compressedImage = await compressImage(base64Decode(newItem.image));
 
-        // Update the local database
-        await _database.insert(
-          _tableName,
-          {
-            'reportId': newItem.reportId,
-            'name': newItem.name,
-            'emergencyType': newItem.emergencyType,
-            'date': newItem.date,
-            'locationName': newItem.locationName,
-            'locationLink': newItem.locationLink,
-            'phoneNumber': newItem.phoneNumber,
-            'message': newItem.message,
-            'residentProfile': residentProfileBytes,
-            'image': imageBytes,
-          },
-        );
+        // Check if the compression was successful
+        if (compressedResidentProfile != null && compressedImage != null) {
+          // Update the local database with compressed data
+          await _database.insert(
+            _tableName,
+            {
+              'reportId': newItem.reportId,
+              'name': newItem.name,
+              'emergencyType': newItem.emergencyType,
+              'date': newItem.date,
+              'locationName': newItem.locationName,
+              'locationLink': newItem.locationLink,
+              'phoneNumber': newItem.phoneNumber,
+              'message': newItem.message,
+              'residentProfile': compressedResidentProfile,
+              'image': compressedImage,
+            },
+          );
+        } else {
+          print('Image compression failed for reportId ${newItem.reportId}');
+        }
       }
     }
 
@@ -340,6 +362,23 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     // Update the previous list length
     updatePreviousListLength(activeRequestList.length);
+  }
+
+  Future<Uint8List?> compressImage(List<int> imageBytes) async {
+    // Convert List<int> to Uint8List
+    Uint8List uint8ImageBytes = Uint8List.fromList(imageBytes);
+
+    // Specify the compression quality (0 to 100, where 100 means no compression)
+    int quality =30;
+
+    // Compress the image
+    List<int> compressedBytes = await FlutterImageCompress.compressWithList(
+      uint8ImageBytes,
+      quality: quality,
+    );
+
+    // Return the compressed image bytes as Uint8List
+    return compressedBytes.isNotEmpty ? Uint8List.fromList(compressedBytes) : null;
   }
 
 
@@ -449,7 +488,20 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       ),
       body: activeRequestList.isEmpty
           ? Center(
-        child: Text('No active reports available.'),
+        child: FutureBuilder(
+          future: hasInternet(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator();
+            } else if (snapshot.data == true) {
+              // Internet connection is available
+              return Text('No active reports available.');
+            } else {
+              // No internet connection
+              return Text('Please check your internet connection.');
+            }
+          },
+        ),
       )
           : ListView.builder(
         itemCount: activeRequestList.length,

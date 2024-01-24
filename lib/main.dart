@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:background_fetch/background_fetch.dart';
 import 'package:e_ligtas_sector/local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
@@ -13,10 +14,27 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await LocalNotifications.init();
-  //await initializeService();
+  BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
 
   runApp(MyApp());
 }
+
+@pragma('vm:entry-point')
+void backgroundFetchHeadlessTask(HeadlessTask task) async {
+  String taskId = task.taskId;
+  bool isTimeout = task.timeout;
+  if (isTimeout) {
+    // This task has exceeded its allowed running-time.
+    // You must stop what you're doing and immediately .finish(taskId)
+    print("[BackgroundFetch] Headless task timed-out: $taskId");
+    BackgroundFetch.finish(taskId);
+    return;
+  }
+  print('[BackgroundFetch] Headless event received.');
+
+  BackgroundFetch.finish(taskId);
+}
+
 
 /*Future<void> initializeService() async {
   final service = FlutterBackgroundService();

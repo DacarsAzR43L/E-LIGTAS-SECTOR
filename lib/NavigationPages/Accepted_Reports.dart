@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:ui';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class AcceptedReportsCard {
   final int id;
@@ -85,14 +86,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/accepted_reports2.db';
+    String path = '${documentsDirectory.path}/accepted_reports4.db';
 
     _database = await openDatabase(
       path,
       onCreate: (db, version) {
         return db.execute(
           '''
-        CREATE TABLE accepted_reports2 (
+        CREATE TABLE accepted_reports4 (
           id INTEGER PRIMARY KEY,
           reportId TEXT,
           name TEXT,
@@ -208,7 +209,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
           // Start a database transaction to delete previous data
           _database.transaction((txn) async {
             // Delete all previous data from the local database
-            txn.delete('accepted_reports2');
+            txn.delete('accepted_reports4');
             print('Previous data deleted successfully');
           });
 
@@ -268,11 +269,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
             List<int> residentProfileBytes = base64Decode(newItem.residentProfile);
             List<int> imageBytes = base64Decode(newItem.image);
 
-            // Ensure that the decoding was successful
-            if (residentProfileBytes.isNotEmpty && imageBytes.isNotEmpty) {
-              // Insert the new data into the local database
+            // Compress the image data
+            Uint8List? compressedResidentProfile = await compressImage(residentProfileBytes);
+            Uint8List? compressedImage = await compressImage(imageBytes);
+
+            if (compressedResidentProfile != null && compressedImage != null) {
+              // Insert the new data into the local database with compressed bytes
               await txn.insert(
-                'accepted_reports2',
+                'accepted_reports4',
                 {
                   'reportId': newItem.reportId,
                   'name': newItem.name,
@@ -282,12 +286,12 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
                   'locationLink': newItem.locationLink,
                   'phoneNumber': newItem.phoneNumber,
                   'message': newItem.message,
-                  'residentProfile': newItem.residentProfile,
-                  'image': newItem.image,
+                  'residentProfile': base64Encode(compressedResidentProfile), // Convert Uint8List to String
+                  'image': base64Encode(compressedImage), // Convert Uint8List to String
                 },
               );
             } else {
-              print('Skipping insertion for reportId ${newItem.reportId}: Failed to decode base64 data');
+              print('Skipping insertion for reportId ${newItem.reportId}: Failed to compress data');
             }
           } else {
             print('Skipping insertion for reportId ${newItem.reportId}: residentProfile and/or image is not a String');
@@ -304,11 +308,27 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
 
 
+  Future<Uint8List?> compressImage(List<int> imageBytes) async {
+    // Convert List<int> to Uint8List
+    Uint8List uint8ImageBytes = Uint8List.fromList(imageBytes);
+
+    // Specify the compression quality (0 to 100, where 100 means no compression)
+    int quality =30;
+
+    // Compress the image
+    List<int> compressedBytes = await FlutterImageCompress.compressWithList(
+      uint8ImageBytes,
+      quality: quality,
+    );
+
+    // Return the compressed image bytes as Uint8List
+    return compressedBytes.isNotEmpty ? Uint8List.fromList(compressedBytes) : null;
+  }
 
   Future<void> loadFromLocalDatabase() async {
     // Load data from the local database, ordered by date in descending order
     List<Map<String, dynamic>> result = await _database.query(
-      'accepted_reports2',
+      'accepted_reports4',
       orderBy: 'date DESC', // Order by date in descending order
     );
 
@@ -369,19 +389,22 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       appBar: AppBar(
         title: Text('Accepted Reports'),
       ),
-      body:  isLoading
-          ? Center(
-        child: CircularProgressIndicator(), // Show loading indicator
-      )
-          : hasData
-          ? ListView.builder(
-        itemCount: acceptedReportslist.length,
-        itemBuilder: (context, index) {
-          return _buildActiveRequestCard(index);
-        },
-      )
-          : Center(
-        child: Text('No data available'), // Show no data text
+      body:   RefreshIndicator(
+        onRefresh: fetchData, // Add your refresh function here
+        child: isLoading
+            ? Center(
+          child: CircularProgressIndicator(),
+        )
+            : hasData
+            ? ListView.builder(
+          itemCount: acceptedReportslist.length,
+          itemBuilder: (context, index) {
+            return _buildActiveRequestCard(index);
+          },
+        )
+            : Center(
+          child: Text('No data available'),
+        ),
       ),
     );
   }
