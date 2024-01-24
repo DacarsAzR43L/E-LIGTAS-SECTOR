@@ -2,6 +2,7 @@ import 'package:e_ligtas_sector/NavigationPages/Accepted_Reports.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'NavigationPages/Active_Requests.dart';
+import 'NavigationPages/Profile.dart';
 import 'login_page.dart';
 import 'package:badges/badges.dart'as badges;
 import 'package:e_ligtas_sector/NavigationPages/Manual_Reports.dart';
@@ -35,7 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.person),
             onPressed: () {
-              // Add logic for handling person icon click
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => ProfileScreen()));
             },
           ),
         ],

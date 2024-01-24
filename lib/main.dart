@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:background_fetch/background_fetch.dart';
+import 'package:e_ligtas_sector/NavigationPages/Profile.dart';
 import 'package:e_ligtas_sector/local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
@@ -14,26 +15,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await LocalNotifications.init();
-  BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
+
 
   runApp(MyApp());
 }
 
-@pragma('vm:entry-point')
-void backgroundFetchHeadlessTask(HeadlessTask task) async {
-  String taskId = task.taskId;
-  bool isTimeout = task.timeout;
-  if (isTimeout) {
-    // This task has exceeded its allowed running-time.
-    // You must stop what you're doing and immediately .finish(taskId)
-    print("[BackgroundFetch] Headless task timed-out: $taskId");
-    BackgroundFetch.finish(taskId);
-    return;
-  }
-  print('[BackgroundFetch] Headless event received.');
-
-  BackgroundFetch.finish(taskId);
-}
 
 
 /*Future<void> initializeService() async {
@@ -88,33 +74,32 @@ await service.startService();
 
 
 // Function to check the user's logged-in status
-Future<bool> checkLoggedInStatus() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getBool('isLoggedIn') ?? false;
+Future<bool?> checkLoggedInStatus() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('isLoggedIn');
 }
-
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Sizer(
-      builder:  (context, orientation, deviceType) {
-     return MaterialApp(
-       debugShowCheckedModeBanner: false,
-        home: FutureBuilder<bool>(
-          future: checkLoggedInStatus(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Container();
-            } else {
-              // Check if the user is logged in or not
-              bool isLoggedIn = snapshot.data ?? false;
-              return isLoggedIn ? HomeScreen() : LoginPage();
-            }
-          },
-        ),
-      );
-    }
+      builder: (context, orientation, deviceType) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: FutureBuilder<bool?>(
+            future: checkLoggedInStatus(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Container();
+              } else {
+                // Check if the user is logged in or not
+                bool isLoggedIn = snapshot.data ?? false;
+                return isLoggedIn ? HomeScreen() : LoginPage();
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }

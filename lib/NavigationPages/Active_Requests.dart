@@ -95,27 +95,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     checkInternetConnectionAndInit();
 
-    // Initialize background fetch
-    initBackgroundFetch();
+
   }
 
-  Future<void> initBackgroundFetch() async {
-    BackgroundFetch.configure(
-      BackgroundFetchConfig(
-        minimumFetchInterval: 15, // fetch data every 15 minutes
-        stopOnTerminate: false,
-        enableHeadless: true,
-        startOnBoot: true,
-        forceAlarmManager: false,
-      ),
-      fetchDataInBackground,
-    );
-  }
-
-  void fetchDataInBackground(String taskId)  {
-     startTimer();
-     BackgroundFetch.start();
-  }
 
   Future<void> checkInternetConnectionAndInit() async {
     var connectivityResult = await Connectivity().checkConnectivity();
@@ -511,6 +493,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       ),
     );
   }
+
 
   Widget _buildActiveRequestCard(int index) {
     activeRequestCard = activeRequestList[index];
