@@ -26,6 +26,7 @@ class AcceptReportDialog extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               'Report Successfully Accepted!',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -35,12 +36,14 @@ class AcceptReportDialog extends StatelessWidget {
 
             Text(
               'Go to Accepted Reports to see current Accepted Reports.',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13.0,
                 fontFamily: "Montserrat-Regular",
               ),
             ),
 
+            SizedBox(height: 10.0),
             SizedBox(
               width: 200.0,
               child: ElevatedButton(

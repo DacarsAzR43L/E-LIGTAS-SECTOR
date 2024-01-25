@@ -30,7 +30,8 @@ class GalleryErrorDialog extends StatelessWidget {
             ),
             SizedBox(height: 13),
             Text(
-              'Please allow the app to access media',
+              'Please allow the app to access media.',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13.0,
                 fontFamily: "Montserrat-Regular",

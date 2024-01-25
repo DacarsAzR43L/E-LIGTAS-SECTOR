@@ -1,6 +1,7 @@
 import 'dart:async';
-
+import 'package:e_ligtas_sector/CustomDialog/AcceptReportDialog.dart';
 import 'package:background_fetch/background_fetch.dart';
+import 'package:e_ligtas_sector/CustomDialog/GalleryErrorDialog.dart';
 import 'package:e_ligtas_sector/NavigationPages/Profile.dart';
 import 'package:e_ligtas_sector/local_notifications.dart';
 import 'package:flutter/material.dart';
