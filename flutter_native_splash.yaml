@@ -5,7 +5,7 @@ flutter_native_splash:
   image_ios: "Assets/e-ligtas.png"
  #background_image: "Assets/e-ligtas.jpg"
   #background_image_android: "Assets/e-ligtas.jpg"
-  #android_gravity: scaleAspectFill
+  android_gravity: center
   fullscreen: true
 
   android_12:
@@ -14,8 +14,11 @@ flutter_native_splash:
     image: "Assets/e-ligtas.png"
     image_ios: "Assets/e-ligtas.png"
     #background_image: "Assets/e-ligtas.jpg"
-    #android_gravity: scaleAspectFill
+    android_gravity: center
     fullscreen: true
+
+    ios_content_mode: center
+
 
   android: true
   ios: true

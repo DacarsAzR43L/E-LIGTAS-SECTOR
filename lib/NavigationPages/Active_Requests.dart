@@ -15,7 +15,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:ui';
 import 'dart:typed_data';
-import 'package:background_fetch/background_fetch.dart';
 import '../local_notifications.dart';
 
 
@@ -53,12 +52,31 @@ class ActiveRequestScreen extends StatefulWidget {
 
   ActiveRequestScreen({required this.updatePreviousListLength});
 
+  // Create an instance method to call fetchData
+  Future<void> callFetchData() async {
+    // Access the state using the key
+    final _ActiveRequestScreenState state = ActiveRequestScreen.screenKey.currentState!;
+
+
+
+    // Call the fetchData method
+    await state.fetchData();
+  }
+
+  // Define a key for accessing the state
+  static final GlobalKey<_ActiveRequestScreenState> screenKey =
+  GlobalKey<_ActiveRequestScreenState>();
+
+
   @override
   _ActiveRequestScreenState createState() => _ActiveRequestScreenState(
     previousListLength: 0, // or any default value you want to set initially
     updatePreviousListLength: updatePreviousListLength,
   );
+
 }
+
+
 
 class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
@@ -92,12 +110,12 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   void initState() {
     super.initState();
 
-
     checkInternetConnectionAndInit();
-
-
   }
 
+  Future<void> callFetchData() async {
+    await fetchData();
+  }
 
   Future<void> checkInternetConnectionAndInit() async {
     var connectivityResult = await Connectivity().checkConnectivity();

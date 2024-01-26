@@ -459,7 +459,7 @@ class _ManualReportsState extends State<ManualReports> {
             print(_selectedButton);
           },
           child: Container(
-            margin: EdgeInsets.all(8),
+            margin: EdgeInsets.all(2.w),
             decoration: BoxDecoration(
               border: Border.all(
                 color: _selectedButton == buttonIndex ? Colors.blueAccent : Colors.black,
@@ -510,7 +510,7 @@ class _ManualReportsState extends State<ManualReports> {
                 label,
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 22.0,
+                  fontSize: 14.sp,
                 ),
               ),
             ),
@@ -808,7 +808,7 @@ class _ManualReportsState extends State<ManualReports> {
                           ),
 
                           Container(
-                           width: 40.w,
+                           width: 38.w,
                             // decoration: BoxDecoration(
                             // color: Colors.white,
                             //border: Border.all(

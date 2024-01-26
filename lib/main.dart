@@ -1,83 +1,29 @@
 import 'dart:async';
-import 'package:e_ligtas_sector/CustomDialog/AcceptReportDialog.dart';
-import 'package:background_fetch/background_fetch.dart';
-import 'package:e_ligtas_sector/CustomDialog/GalleryErrorDialog.dart';
-import 'package:e_ligtas_sector/NavigationPages/Profile.dart';
 import 'package:e_ligtas_sector/local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_ligtas_sector/Home.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:e_ligtas_sector/NavigationPages/Active_Requests.dart';
 
-void main() async {
+
+void main()  {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await LocalNotifications.init();
+   LocalNotifications.init();
+  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+  Workmanager().registerPeriodicTask(
+    "backgroundTask",
+    "backgroundTask",
+    frequency: Duration(minutes: 15),
+    constraints: Constraints(
+        networkType: NetworkType.connected),
+  );
 
 
   runApp(MyApp());
-}
-
-
-
-/*Future<void> initializeService() async {
-  final service = FlutterBackgroundService();
-
-  await service.configure(
-      iosConfiguration: IosConfiguration(),
-      androidConfiguration: AndroidConfiguration(
-          onStart: onStart,
-          isForegroundMode: true
-      )
-  );
-await service.startService();
-}*/
-
-//@pragma('vm:entry-point')
-
-/*void onStart(ServiceInstance service) async{
-
-  if(service is AndroidServiceInstance) {
-    service.on('setAsForeground').listen((event) {
-      service.setAsForegroundService();
-    });
-
-
-    service.on('setAsBackground').listen((event) {
-      service.setAsBackgroundService();
-    });
-
-    service.on('stopService').listen((event) {
-      service.stopSelf();
-    });
-
-  }
-
-
-  /*Timer.periodic(Duration(seconds: 2), (timer) async {
-    if(service is AndroidServiceInstance) {
-      if( await service.isForegroundService()) {
-        service.setForegroundNotificationInfo(title: "My App Service", content: "Updated at ${DateTime.now()}");
-    }
-    }
-
-
-  });*/
-
-
-
-    }*/
-
-
-
-
-// Function to check the user's logged-in status
-Future<bool?> checkLoggedInStatus() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  return prefs.getBool('isLoggedIn');
 }
 
 class MyApp extends StatelessWidget {
@@ -93,7 +39,6 @@ class MyApp extends StatelessWidget {
               if (snapshot.hasError) {
                 return Container();
               } else {
-                // Check if the user is logged in or not
                 bool isLoggedIn = snapshot.data ?? false;
                 return isLoggedIn ? HomeScreen() : LoginPage();
               }
@@ -104,3 +49,30 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+Future<bool?> checkLoggedInStatus() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('isLoggedIn');
+}
+
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      print('Background task is running...');
+
+      final ActiveRequestScreen activeRequestScreen = ActiveRequestScreen(
+      updatePreviousListLength: (length) {
+        // Handle length update if needed
+      },
+    );
+    activeRequestScreen.callFetchData();
+
+      return Future.value(true);
+    } catch (e) {
+      print('Error in background task: $e');
+      return Future.value(false);
+    }
+  });
+}
+
+
