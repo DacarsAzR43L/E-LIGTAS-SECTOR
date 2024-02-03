@@ -527,7 +527,7 @@ class _ManualReportsState extends State<ManualReports> {
     print(userEmail);
 
     final String apiUrl =
-        'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
+        'https://eligtas.site/public/storage/get_responder_info.php';
 
     try {
       // Send a POST request to the PHP script with the email parameter
@@ -581,7 +581,7 @@ class _ManualReportsState extends State<ManualReports> {
 
     try {
       // Your API endpoint
-      String apiUrl = "http://192.168.100.7/e-ligtas-sector/send_manual_reports.php";
+      String apiUrl = "https://eligtas.site/public/storage/send_manual_reports.php";
 
       FormData formData = FormData.fromMap({
         'dateandTime': DateTime.now().toLocal().toString(),
@@ -808,7 +808,7 @@ class _ManualReportsState extends State<ManualReports> {
                           ),
 
                           Container(
-                           width: 38.w,
+                           width: 37.w,
                             // decoration: BoxDecoration(
                             // color: Colors.white,
                             //border: Border.all(

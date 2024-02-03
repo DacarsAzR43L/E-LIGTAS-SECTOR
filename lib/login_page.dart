@@ -28,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
         return AbsorbPointer( absorbing: true, child: Center(child: CircularProgressIndicator(),));
       },
     );
-    final String url = "http://192.168.100.7/e-ligtas-sector/sector-login.php"; // Replace with your PHP script URL
+    final String url = "https://eligtas.site/public/storage/sector-login.php"; // Replace with your PHP script URL
 
     // Check if 'email' and 'password' are set
     if (emailController.text.isNotEmpty && passController.text.isNotEmpty) {

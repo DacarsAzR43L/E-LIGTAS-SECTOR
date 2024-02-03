@@ -5,7 +5,6 @@ import 'package:sizer/sizer.dart';
 import 'login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_ligtas_sector/Home.dart';
-import 'package:workmanager/workmanager.dart';
 import 'package:e_ligtas_sector/NavigationPages/Active_Requests.dart';
 
 
@@ -13,15 +12,6 @@ void main()  {
   WidgetsFlutterBinding.ensureInitialized();
 
    LocalNotifications.init();
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
-  Workmanager().registerPeriodicTask(
-    "backgroundTask",
-    "backgroundTask",
-    frequency: Duration(minutes: 15),
-    constraints: Constraints(
-        networkType: NetworkType.connected),
-  );
-
 
   runApp(MyApp());
 }
@@ -55,24 +45,5 @@ Future<bool?> checkLoggedInStatus() async {
   return prefs.getBool('isLoggedIn');
 }
 
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    try {
-      print('Background task is running...');
-
-      final ActiveRequestScreen activeRequestScreen = ActiveRequestScreen(
-      updatePreviousListLength: (length) {
-        // Handle length update if needed
-      },
-    );
-    activeRequestScreen.callFetchData();
-
-      return Future.value(true);
-    } catch (e) {
-      print('Error in background task: $e');
-      return Future.value(false);
-    }
-  });
-}
 
 

@@ -124,7 +124,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
   Future<void> fetchDataFromPHP(String email) async {
     final String apiUrl =
-        'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
+        'https://eligtas.site/public/storage/get_responder_info.php';
 
     try {
       // Send a POST request to the PHP script with the email parameter
@@ -158,7 +158,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     });
 
     final String apiUrl =
-        'http://192.168.100.7/e-ligtas-sector/get_accepted_reports.php';
+        'https://eligtas.site/public/storage/get_accepted_reports.php';
 
     // Get the user email
     String userEmail = await getUserEmail();
@@ -458,10 +458,16 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: ClipOval(
-                      child: CachedMemoryImage(
-                        uniqueKey: 'app://imageProfile/${acceptedReportsCard?.reportId}',
-                        base64: acceptedReportsCard?.residentProfile,
+                    leading: Container(
+                      width: 50.0, // Set your desired width
+                      height: 100.0, // Set your desired height
+                      child: ClipOval(
+                        clipBehavior: Clip.hardEdge,
+                        child: CachedMemoryImage(
+                          uniqueKey: 'app://imageProfile/${acceptedReportsCard?.reportId}',
+                          base64: acceptedReportsCard?.residentProfile,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     title: Text(acceptedReportsCard!.name),

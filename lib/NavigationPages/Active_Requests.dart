@@ -52,22 +52,6 @@ class ActiveRequestScreen extends StatefulWidget {
 
   ActiveRequestScreen({required this.updatePreviousListLength});
 
-  // Create an instance method to call fetchData
-  Future<void> callFetchData() async {
-    // Access the state using the key
-    final _ActiveRequestScreenState state = ActiveRequestScreen.screenKey.currentState!;
-
-
-
-    // Call the fetchData method
-    await state.fetchData();
-  }
-
-  // Define a key for accessing the state
-  static final GlobalKey<_ActiveRequestScreenState> screenKey =
-  GlobalKey<_ActiveRequestScreenState>();
-
-
   @override
   _ActiveRequestScreenState createState() => _ActiveRequestScreenState(
     previousListLength: 0, // or any default value you want to set initially
@@ -89,7 +73,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   int previousListLength;
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
-  final String _tableName = 'active_requests4';
+  final String _tableName = 'active_requests7';
   bool hasInternetConnection = false;
 
 
@@ -129,6 +113,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       print("Intialize DATABASE");
       setState(() {
         hasInternetConnection = true;
+
       });
       fetchData();
       startTimer();
@@ -136,7 +121,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   void startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 6), (timer) {
       fetchData();
     });
   }
@@ -148,7 +133,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/active_requests4.db';
+    String path = '${documentsDirectory.path}/active_requests7.db';
 
     _database = await openDatabase(
       path,
@@ -179,7 +164,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
   Future<void> fetchDataFromPHP(String email) async {
-    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_responder_info.php';
+    final String apiUrl = 'https://eligtas.site/public/storage/get_responder_info.php';
 
     try {
       // Send a POST request to the PHP script with the email parameter
@@ -206,7 +191,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   Future<void> insertData() async {
-    final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/accept_responder_report.php';
+    final String apiUrl = 'https://eligtas.site/public/storage/accept_responder_report.php';
 
     try {
       final response = await http.post(
@@ -262,7 +247,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     try {
       // Your API endpoint
-      final String apiUrl = 'http://192.168.100.7/e-ligtas-sector/get_active_reports.php';
+      final String apiUrl = 'https://eligtas.site/public/storage/get_active_reports.php';
 
       // Perform the HTTP GET request
       final response = await http.get(Uri.parse(apiUrl));
@@ -308,6 +293,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       await loadFromLocalDatabase();
     }
   }
+
 
   // Compare the new data with the local database and update if necessary
   Future<void> compareAndUpdateDatabase(List<ActiveRequestCard> currentFetch) async {
@@ -362,6 +348,13 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     // Update the previous list length
     updatePreviousListLength(activeRequestList.length);
+  }
+
+
+
+// Function to retrieve data from the local database
+  Future<List<Map<String, dynamic>>> getLocalData() async {
+    return await _database.query(_tableName);
   }
 
   Future<Uint8List?> compressImage(List<int> imageBytes) async {
@@ -540,10 +533,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           child: Column(
             children: [
               ListTile(
-                leading: ClipOval(
-                  child: CachedMemoryImage(
-                    uniqueKey: 'app://imageProfile/${activeRequestCard?.reportId}',
-                    base64: activeRequestCard?.residentProfile,
+                leading: Container(
+                  width: 50.0,
+                  height: 100.0,
+                  child: ClipOval(
+                    child: CachedMemoryImage(
+                      uniqueKey: 'app://imageProfile/${activeRequestCard?.reportId}',
+                      base64: activeRequestCard?.residentProfile,
+                    ),
                   ),
                 ),
                 title: Text(activeRequestCard!.name),
