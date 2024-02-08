@@ -417,8 +417,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
   }
 
 
+  @override
   Widget _buildActiveRequestCard(int index) {
-    acceptedReportsCard = acceptedReportslist[index]; // No need for reversing here
+    AcceptedReportsCard acceptedReportsCard = acceptedReportslist[index];
 
     if (index >= previousListLength) {
       newItemsCount++;
@@ -430,19 +431,19 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
     bool showDivider = true; // Show divider by default
     if (index > 0) {
       showDivider = getTrimmedDate(acceptedReportslist[index - 1].date) !=
-          getTrimmedDate(acceptedReportsCard!.date);
+          getTrimmedDate(acceptedReportsCard.date);
     }
 
     // Check if the current report's date is the same as the next one
     bool sameDateAsNext = false;
     if (index < acceptedReportslist.length - 1) {
-      sameDateAsNext = getTrimmedDate(acceptedReportsCard!.date) ==
+      sameDateAsNext = getTrimmedDate(acceptedReportsCard.date) ==
           getTrimmedDate(acceptedReportslist[index + 1].date);
     }
 
     return Column(
       children: [
-        if (showDivider) _buildDivider(getTrimmedDate(acceptedReportsCard!.date)),
+        if (showDivider) _buildDivider(getTrimmedDate(acceptedReportsCard.date)),
         KeyedSubtree(
           key: cardKey,
           child: GestureDetector(
@@ -462,23 +463,23 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                 children: [
                   ListTile(
                     leading: Container(
-                      width: 50.0, // Set your desired width
-                      height: 100.0, // Set your desired height
+                      width: 50.0,
+                      height: 100.0,
                       child: ClipOval(
                         clipBehavior: Clip.hardEdge,
                         child: CachedMemoryImage(
-                          uniqueKey: 'app://imageProfile/${acceptedReportsCard?.reportId}',
-                          base64: acceptedReportsCard?.residentProfile,
+                          uniqueKey: 'app://imageProfile/${acceptedReportsCard.reportId}',
+                          base64: acceptedReportsCard.residentProfile,
                           fit: BoxFit.cover,
                         ),
                       ),
                     ),
-                    title: Text(acceptedReportsCard!.name),
+                    title: Text(acceptedReportsCard.name),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Emergency Type: ${acceptedReportsCard?.emergencyType}'),
-                        Text('Date: ${acceptedReportsCard?.date}'),
+                        Text('Emergency Type: ${acceptedReportsCard.emergencyType}'),
+                        Text('Date: ${acceptedReportsCard.date}'),
                       ],
                     ),
                   ),
@@ -499,7 +500,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               children: [
                                 Text('Location Name: '),
                                 SizedBox(width: 5.0),
-                                Flexible(child: Text(acceptedReportsCard?.locationName, softWrap: true)),
+                                Flexible(child: Text(acceptedReportsCard.locationName, softWrap: true)),
                               ],
                             ),
                             SizedBox(height: 5.0),
@@ -510,10 +511,10 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                                 Flexible(
                                   child: GestureDetector(
                                     onTap: () {
-                                      launch(acceptedReportsCard?.locationLink);
+                                      launch(acceptedReportsCard.locationLink);
                                     },
                                     child: Text(
-                                      '${acceptedReportsCard?.locationLink}',
+                                      '${acceptedReportsCard.locationLink}',
                                       softWrap: true,
                                       style: TextStyle(
                                         color: Colors.blue,
@@ -527,17 +528,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                             SizedBox(height: 5.0),
                             GestureDetector(
                               onTap: () {
-                                launch('tel:+${acceptedReportsCard?.phoneNumber}');
-                                print(acceptedReportsCard?.phoneNumber);
-                                print(acceptedReportsCard?.name);
-                                print(cardKey);
+                                launch('tel:+${acceptedReportsCard.phoneNumber}');
                               },
                               child: Row(
                                 children: [
                                   Text('Phone Number: '),
                                   SizedBox(width: 5.0),
                                   Text(
-                                    '+${acceptedReportsCard?.phoneNumber}',
+                                    '+${acceptedReportsCard.phoneNumber}',
                                     style: TextStyle(
                                       color: Colors.blue,
                                       decoration: TextDecoration.underline,
@@ -551,16 +549,16 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               children: [
                                 Text('Message: '),
                                 SizedBox(width: 5.0),
-                                Flexible(child: Text(acceptedReportsCard?.message, softWrap: true)),
+                                Flexible(child: Text(acceptedReportsCard.message, softWrap: true)),
                               ],
                             ),
                             SizedBox(height: 10.0),
                             Container(
                               alignment: Alignment.center,
-                              child: acceptedReportsCard?.image != null
+                              child: acceptedReportsCard.image != null
                                   ? CachedMemoryImage(
-                                uniqueKey: 'app://image/${acceptedReportsCard?.reportId}',
-                                base64: acceptedReportsCard?.image,
+                                uniqueKey: 'app://image/${acceptedReportsCard.reportId}',
+                                base64: acceptedReportsCard.image,
                               )
                                   : Placeholder(),
                             ),
