@@ -47,14 +47,14 @@ class AcceptedReportsScreen extends StatefulWidget {
   _AcceptedReportsScreenState createState() => _AcceptedReportsScreenState();
 }
 
-class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
+class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with AutomaticKeepAliveClientMixin {
   int? expandedCardIndex;
   List<AcceptedReportsCard> acceptedReportslist = [];
   int newItemsCount = 0;
   String status = "1";
   late Database _database;
   bool isConnectedToInternet = false;
-  int previousListLength =0;
+  int previousListLength = 0;
   AcceptedReportsCard? acceptedReportsCard;
 
   // Responder Info
@@ -64,6 +64,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   bool isLoading = true;
   bool hasData = true;
 
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -86,14 +89,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/accepted_reports4.db';
+    String path = '${documentsDirectory.path}/accepted_reports7.db';
 
     _database = await openDatabase(
       path,
       onCreate: (db, version) {
         return db.execute(
           '''
-        CREATE TABLE accepted_reports4 (
+        CREATE TABLE accepted_reports7 (
           id INTEGER PRIMARY KEY,
           reportId TEXT,
           name TEXT,
@@ -121,7 +124,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   }
 
 
-
   Future<void> fetchDataFromPHP(String email) async {
     final String apiUrl =
         'https://eligtas.site/public/storage/get_responder_info.php';
@@ -147,7 +149,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       print('Error: $error');
     }
   }
-
 
 
   Future<void> fetchData() async {
@@ -181,22 +182,23 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
         setState(() {
           List<AcceptedReportsCard> currentFetch = responseData
               .asMap()
-              .map((index, data) => MapEntry(
-            index,
-            AcceptedReportsCard(
-              id: index,
-              reportId: data['report_id'],
-              name: data['resident_name'],
-              emergencyType: data['emergency_type'],
-              date: data['dateandTime'],
-              locationName: data['locationName'],
-              locationLink: data['locationLink'],
-              phoneNumber: data['phoneNumber'],
-              message: data['message'],
-              residentProfile: data['residentProfile'],
-              image: data['imageEvidence'],
-            ),
-          ))
+              .map((index, data) =>
+              MapEntry(
+                index,
+                AcceptedReportsCard(
+                  id: index,
+                  reportId: data['report_id'],
+                  name: data['resident_name'],
+                  emergencyType: data['emergency_type'],
+                  date: data['dateandTime'],
+                  locationName: data['locationName'],
+                  locationLink: data['locationLink'],
+                  phoneNumber: data['phoneNumber'],
+                  message: data['message'],
+                  residentProfile: data['residentProfile'],
+                  image: data['imageEvidence'],
+                ),
+              ))
               .values
               .toList();
 
@@ -209,7 +211,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
           // Start a database transaction to delete previous data
           _database.transaction((txn) async {
             // Delete all previous data from the local database
-            txn.delete('accepted_reports4');
+            txn.delete('accepted_reports7');
             print('Previous data deleted successfully');
           });
 
@@ -221,7 +223,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
             // New items are added
             isLoading = false;
             print('New items added!');
-            print('New items count in current fetch: $newItemsCountInCurrentFetch');
+            print(
+                'New items count in current fetch: $newItemsCountInCurrentFetch');
 
             // Update the total new items count
             newItemsCount += newItemsCountInCurrentFetch;
@@ -250,12 +253,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     }
   }
 
-
-
-
-
-
-  Future<void> updateLocalDatabase(List<AcceptedReportsCard> currentFetch) async {
+  Future<void> updateLocalDatabase(
+      List<AcceptedReportsCard> currentFetch) async {
     try {
       // Start a database transaction
       await _database.transaction((txn) async {
@@ -266,17 +265,19 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
 
           if (newItem.residentProfile is String && newItem.image is String) {
             // Convert image data to bytes
-            List<int> residentProfileBytes = base64Decode(newItem.residentProfile);
+            List<int> residentProfileBytes = base64Decode(
+                newItem.residentProfile);
             List<int> imageBytes = base64Decode(newItem.image);
 
             // Compress the image data
-            Uint8List? compressedResidentProfile = await compressImage(residentProfileBytes);
+            Uint8List? compressedResidentProfile = await compressImage(
+                residentProfileBytes);
             Uint8List? compressedImage = await compressImage(imageBytes);
 
             if (compressedResidentProfile != null && compressedImage != null) {
               // Insert the new data into the local database with compressed bytes
               await txn.insert(
-                'accepted_reports4',
+                'accepted_reports7',
                 {
                   'reportId': newItem.reportId,
                   'name': newItem.name,
@@ -286,15 +287,19 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
                   'locationLink': newItem.locationLink,
                   'phoneNumber': newItem.phoneNumber,
                   'message': newItem.message,
-                  'residentProfile': base64Encode(compressedResidentProfile), // Convert Uint8List to String
-                  'image': base64Encode(compressedImage), // Convert Uint8List to String
+                  'residentProfile': base64Encode(compressedResidentProfile),
+                  // Convert Uint8List to String
+                  'image': base64Encode(compressedImage),
+                  // Convert Uint8List to String
                 },
               );
             } else {
-              print('Skipping insertion for reportId ${newItem.reportId}: Failed to compress data');
+              print('Skipping insertion for reportId ${newItem
+                  .reportId}: Failed to compress data');
             }
           } else {
-            print('Skipping insertion for reportId ${newItem.reportId}: residentProfile and/or image is not a String');
+            print('Skipping insertion for reportId ${newItem
+                .reportId}: residentProfile and/or image is not a String');
           }
         }
       });
@@ -305,15 +310,12 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     }
   }
 
-
-
-
   Future<Uint8List?> compressImage(List<int> imageBytes) async {
     // Convert List<int> to Uint8List
     Uint8List uint8ImageBytes = Uint8List.fromList(imageBytes);
 
     // Specify the compression quality (0 to 100, where 100 means no compression)
-    int quality =30;
+    int quality = 30;
 
     // Compress the image
     List<int> compressedBytes = await FlutterImageCompress.compressWithList(
@@ -322,31 +324,34 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     );
 
     // Return the compressed image bytes as Uint8List
-    return compressedBytes.isNotEmpty ? Uint8List.fromList(compressedBytes) : null;
+    return compressedBytes.isNotEmpty
+        ? Uint8List.fromList(compressedBytes)
+        : null;
   }
 
   Future<void> loadFromLocalDatabase() async {
     // Load data from the local database, ordered by date in descending order
     List<Map<String, dynamic>> result = await _database.query(
-      'accepted_reports4',
+      'accepted_reports7',
       orderBy: 'date DESC', // Order by date in descending order
     );
 
     setState(() {
       List<AcceptedReportsCard> currentFetch = result
-          .map((data) => AcceptedReportsCard(
-        id: data['id'],
-        reportId: data['reportId'],
-        name: data['name'],
-        emergencyType: data['emergencyType'],
-        date: data['date'],
-        locationName: data['locationName'],
-        locationLink: data['locationLink'],
-        phoneNumber: data['phoneNumber'],
-        message: data['message'],
-        residentProfile: data['residentProfile'],
-        image: data['image'],
-      ))
+          .map((data) =>
+          AcceptedReportsCard(
+            id: data['id'],
+            reportId: data['reportId'],
+            name: data['name'],
+            emergencyType: data['emergencyType'],
+            date: data['date'],
+            locationName: data['locationName'],
+            locationLink: data['locationLink'],
+            phoneNumber: data['phoneNumber'],
+            message: data['message'],
+            residentProfile: data['residentProfile'],
+            image: data['image'],
+          ))
           .toList();
 
       // Update the acceptedReportslist with the reversed list
@@ -359,7 +364,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       isLoading = false;
     });
   }
-
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -376,8 +380,6 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
   }
 
 
-
-
   @override
   void dispose() {
     super.dispose();
@@ -389,7 +391,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
       appBar: AppBar(
         title: Text('Accepted Reports'),
       ),
-      body:   RefreshIndicator(
+      body: RefreshIndicator(
         onRefresh: fetchData, // Add your refresh function here
         child: isLoading
             ? Center(
@@ -414,8 +416,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     return fullDate.split(' ')[0];
   }
 
+
   Widget _buildActiveRequestCard(int index) {
-    acceptedReportsCard = acceptedReportslist[index];
+    acceptedReportsCard = acceptedReportslist[index]; // No need for reversing here
 
     if (index >= previousListLength) {
       newItemsCount++;
@@ -525,6 +528,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
                             GestureDetector(
                               onTap: () {
                                 launch('tel:+${acceptedReportsCard?.phoneNumber}');
+                                print(acceptedReportsCard?.phoneNumber);
+                                print(acceptedReportsCard?.name);
+                                print(cardKey);
                               },
                               child: Row(
                                 children: [
@@ -585,10 +591,12 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> {
     );
   }
 
-
 }
 
-Future<String> getUserEmail() async {
+
+
+
+  Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }

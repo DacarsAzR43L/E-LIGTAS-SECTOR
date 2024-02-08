@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
@@ -256,26 +257,57 @@ class _ManualReportsState extends State<ManualReports> {
   }
 
   Future<void> _pickImage(ImageSource gallery) async {
-    final XFile? image = await ImagePicker().pickImage(source: gallery);
+    try {
+      final XFile? image = await ImagePicker().pickImage(source: gallery);
 
-    if (image != null) {
-      List<int> imageBytes = await io.File(image.path).readAsBytes();
+      if (image != null) {
+        List<int> imageBytes = await io.File(image.path).readAsBytes();
 
-      // Convert bytes to Uint8List
-      Uint8List uint8List = Uint8List.fromList(imageBytes);
+        // Convert List<int> to Uint8List
+        Uint8List uint8List = Uint8List.fromList(imageBytes);
 
-      // Encode Uint8List to base64
-      String base64Image = 'data:image/${image.path.split('.').last};base64,' + base64Encode(imageBytes);
+        // Print original image size
+        print("Original Size: ${uint8List.length} bytes");
 
-      setState(() {
-        _imageFile = io.File(image.path);
-        _imageName = image.path.split('/').last;
-        _imageData = base64Image;
+        // Compress image using flutter_image_compress
+        List<int> compressedBytes = await FlutterImageCompress.compressWithList(
+          uint8List,
+          minHeight: 720,
+          minWidth: 720,
+          quality: 50,
+          format: CompressFormat.webp,
+        );
 
-        print("Base64 Image Data: $_imageData");
-        print("Image Name: $_imageName");
-        print("Image File: $_imageFile");
-      });
+        // Print compressed image size
+        print("Compressed Size: ${compressedBytes.length} bytes");
+
+        // Save compressed bytes to the image file
+        await io.File(image.path).writeAsBytes(compressedBytes);
+
+        // Convert compressed bytes to Uint8List
+        Uint8List compressedUint8List = Uint8List.fromList(compressedBytes);
+
+        // Encode Uint8List to base64
+        String base64Image =
+            'data:image/${image.path.split('.').last};base64,' +
+                base64Encode(compressedUint8List);
+
+        // Print image file size after compression
+        print(
+            "Image File Size After Compression: ${io.File(image.path).lengthSync()} bytes");
+
+        setState(() {
+          _imageFile = io.File(image.path);
+          _imageName = image.path.split('/').last;
+          _imageData = base64Image;
+
+          print("Base64 Image Data: $_imageData");
+          print("Image Name: $_imageName");
+          print("Image File: $_imageFile");
+        });
+      }
+    } catch (e) {
+      print("Error during image picking: $e");
     }
   }
 
@@ -355,26 +387,57 @@ class _ManualReportsState extends State<ManualReports> {
   }
 
   Future<void> _pickImage1(ImageSource gallery) async {
-    final XFile? image = await ImagePicker().pickImage(source: gallery);
+    try {
+      final XFile? image = await ImagePicker().pickImage(source: gallery);
 
-    if (image != null) {
-      List<int> imageBytes = await io.File(image.path).readAsBytes();
+      if (image != null) {
+        List<int> imageBytes = await io.File(image.path).readAsBytes();
 
-      // Convert bytes to Uint8List
-      Uint8List uint8List = Uint8List.fromList(imageBytes);
+        // Convert List<int> to Uint8List
+        Uint8List uint8List = Uint8List.fromList(imageBytes);
 
-      // Encode Uint8List to base64
-      String base64Image = 'data:image/${image.path.split('.').last};base64,' + base64Encode(imageBytes);
+        // Print original image size
+        print("Original Size: ${uint8List.length} bytes");
 
-      setState(() {
-        _imageFile1 = io.File(image.path);
-        _imageName1 = image.path.split('/').last;
-        _imageData1 = base64Image;
+        // Compress image using flutter_image_compress
+        List<int> compressedBytes = await FlutterImageCompress.compressWithList(
+          uint8List,
+          minHeight: 720,
+          minWidth: 720,
+          quality: 50,
+          format: CompressFormat.webp,
+        );
 
-        print("Base64 Image Data: $_imageData1");
-        print("Image Name: $_imageName1");
-        print("Image File: $_imageFile1");
-      });
+        // Print compressed image size
+        print("Compressed Size: ${compressedBytes.length} bytes");
+
+        // Save compressed bytes to the image file
+        await io.File(image.path).writeAsBytes(compressedBytes);
+
+        // Convert compressed bytes to Uint8List
+        Uint8List compressedUint8List = Uint8List.fromList(compressedBytes);
+
+        // Encode Uint8List to base64
+        String base64Image =
+            'data:image/${image.path.split('.').last};base64,' +
+                base64Encode(compressedUint8List);
+
+        // Print image file size after compression
+        print(
+            "Image File Size After Compression: ${io.File(image.path).lengthSync()} bytes");
+
+        setState(() {
+          _imageFile1 = io.File(image.path);
+          _imageName1 = image.path.split('/').last;
+          _imageData1= base64Image;
+
+          print("Base64 Image Data: $_imageData1");
+          print("Image Name: $_imageName1");
+          print("Image File: $_imageFile1");
+        });
+      }
+    } catch (e) {
+      print("Error during image picking: $e");
     }
   }
 

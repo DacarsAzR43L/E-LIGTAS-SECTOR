@@ -73,7 +73,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   int previousListLength;
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
-  final String _tableName = 'active_requests7';
+  final String _tableName = 'active_requests11';
   bool hasInternetConnection = false;
 
 
@@ -121,7 +121,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   void startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 6), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       fetchData();
     });
   }
@@ -133,7 +133,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/active_requests7.db';
+    String path = '${documentsDirectory.path}/active_requests11.db';
 
     _database = await openDatabase(
       path,
@@ -142,7 +142,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           '''
         CREATE TABLE $_tableName (
           id INTEGER PRIMARY KEY,
-          reportId TEXT,
+          reportId INTEGER,
           name TEXT,
           emergencyType TEXT,
           date TEXT,
@@ -409,7 +409,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
 
-  Future<void> removeItem(int index, String reportId) async {
+  Future<void> removeItem(int index, int reportId) async {
+
     var connectivityResult = await (Connectivity().checkConnectivity());
 
     if (connectivityResult != ConnectivityResult.none) {
@@ -537,9 +538,11 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                   width: 50.0,
                   height: 100.0,
                   child: ClipOval(
+                    clipBehavior: Clip.hardEdge,
                     child: CachedMemoryImage(
                       uniqueKey: 'app://imageProfile/${activeRequestCard?.reportId}',
                       base64: activeRequestCard?.residentProfile,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),

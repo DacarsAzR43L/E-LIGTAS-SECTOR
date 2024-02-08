@@ -6,13 +6,15 @@ import 'login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:e_ligtas_sector/Home.dart';
 import 'package:e_ligtas_sector/NavigationPages/Active_Requests.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 
 void main()  {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
    LocalNotifications.init();
 
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(MyApp());
 }
 
