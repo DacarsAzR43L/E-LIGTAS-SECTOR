@@ -430,7 +430,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
     // Check if the current report's date is different from the previous one
     bool showDivider = true; // Show divider by default
     if (index > 0) {
-      showDivider = getTrimmedDate(acceptedReportslist[acceptedReportslist.length - index].date) !=
+      showDivider = getTrimmedDate(acceptedReportslist[index - 1].date) !=
           getTrimmedDate(acceptedReportsCard.date);
     }
 

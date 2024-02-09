@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:ui';
 import 'dart:typed_data';
+import '../CustomDialog/ArchiveReportDialog.dart';
 import '../local_notifications.dart';
 
 
@@ -69,7 +70,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   late Timer _timer;
   late Database _database;
   int newItemsCount = 0;
-  String status ="1";
+  String status = "1";
+  String statusArchive ="2";
   int previousListLength;
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
@@ -82,12 +84,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   String userFrom = '';
 
 
-
   _ActiveRequestScreenState({
     required this.previousListLength,
     required this.updatePreviousListLength,
   });
-
 
 
   @override
@@ -113,7 +113,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       print("Intialize DATABASE");
       setState(() {
         hasInternetConnection = true;
-
       });
       fetchData();
       startTimer();
@@ -161,8 +160,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
-
-
   Future<void> fetchDataFromPHP(String email) async {
     final String apiUrl = 'https://eligtas.site/public/storage/get_responder_info.php';
 
@@ -175,13 +172,11 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
       if (response.statusCode == 200) {
         // Decode the response JSON
-        Map <String,dynamic> responseData = json.decode(response.body);
+        Map <String, dynamic> responseData = json.decode(response.body);
 
         // Extract the values and set them in a string
         responderName = responseData['responder_name'];
         userFrom = responseData['userfrom'];
-
-
       } else {
         print('Error: ${response.body}');
       }
@@ -200,12 +195,15 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           'status': status,
           'responder_name': responderName,
           'userfrom': userFrom,
-          'reportId': activeRequestCard?.reportId.toString(), // Keep it as an integer
+          'reportId': activeRequestCard?.reportId.toString(),
+          // Keep it as an integer
         },
       );
 
       if (response.statusCode == 200) {
-        final responseData = await json.decode(response.body) as Map<String, dynamic>;
+        final responseData = await json.decode(response.body) as Map<
+            String,
+            dynamic>;
 
         if (responseData['success'] == true) {
           print('Data inserted successfully');
@@ -216,7 +214,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
               return AcceptReportDialog();
             },
           );
-
         } else {
           print('Error: ${responseData['message']}');
           print('Status: $status');
@@ -225,7 +222,53 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           print('Responder Name: $responderName');
         }
       } else {
-        print('Failed to connect to the server. Status code: ${response.statusCode}');
+        print('Failed to connect to the server. Status code: ${response
+            .statusCode}');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  Future<void> insertArchiveData() async {
+    final String apiUrl = 'https://eligtas.site/public/storage/accept_responder_report.php';
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'status': statusArchive,
+          'responder_name': responderName,
+          'userfrom': userFrom,
+          'reportId': activeRequestCard?.reportId.toString(),
+          // Keep it as an integer
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = await json.decode(response.body) as Map<
+            String,
+            dynamic>;
+
+        if (responseData['success'] == true) {
+          print('Data inserted successfully');
+
+          showDialog(
+            context: context,
+            builder: (context) {
+              return ArchiveReportDialog();
+            },
+          );
+        } else {
+          print('Error: ${responseData['message']}');
+          print('Status: $status');
+          print('Report ID: ${activeRequestCard?.reportId}');
+          print('User From: $userFrom');
+          print('Responder Name: $responderName');
+        }
+      } else {
+        print('Failed to connect to the server. Status code: ${response
+            .statusCode}');
       }
     } catch (error) {
       print('Error: $error');
@@ -233,10 +276,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
-
   // Fetch data from the server and update local database
   Future<void> fetchData() async {
-
     // Get the user email
     String userEmail = await getUserEmail();
 
@@ -260,22 +301,23 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         // Convert the server response to a list of ActiveRequestCard objects
         List<ActiveRequestCard> currentFetch = responseData
             .asMap()
-            .map((index, data) => MapEntry(
-          index,
-          ActiveRequestCard(
-            id: index,
-            reportId: data['report_id'],
-            name: data['resident_name'],
-            emergencyType: data['emergency_type'],
-            date: data['dateandTime'],
-            locationName: data['locationName'],
-            locationLink: data['locationLink'],
-            phoneNumber: data['phoneNumber'],
-            message: data['message'],
-            residentProfile: data['residentProfile'],
-            image: data['imageEvidence'],
-          ),
-        ))
+            .map((index, data) =>
+            MapEntry(
+              index,
+              ActiveRequestCard(
+                id: index,
+                reportId: data['report_id'],
+                name: data['resident_name'],
+                emergencyType: data['emergency_type'],
+                date: data['dateandTime'],
+                locationName: data['locationName'],
+                locationLink: data['locationLink'],
+                phoneNumber: data['phoneNumber'],
+                message: data['message'],
+                residentProfile: data['residentProfile'],
+                image: data['imageEvidence'],
+              ),
+            ))
             .values
             .toList();
 
@@ -296,14 +338,16 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
   // Compare the new data with the local database and update if necessary
-  Future<void> compareAndUpdateDatabase(List<ActiveRequestCard> currentFetch) async {
+  Future<void> compareAndUpdateDatabase(
+      List<ActiveRequestCard> currentFetch) async {
     // Retrieve data from the local database
     List<Map<String, dynamic>> localData = await _database.query(_tableName);
 
     // Perform the comparison and update the database
     // For simplicity, assuming 'reportId' is a unique identifier
     for (var newItem in currentFetch) {
-      if (!localData.any((element) => element['reportId'] == newItem.reportId)) {
+      if (!localData.any((element) =>
+      element['reportId'] == newItem.reportId)) {
         // New item found, perform necessary actions
         // For example, show a notification
         LocalNotifications.showSimpleNotification(
@@ -313,8 +357,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         );
 
         // Convert image data to bytes
-        List<int>? compressedResidentProfile = await compressImage(base64Decode(newItem.residentProfile));
-        List<int>? compressedImage = await compressImage(base64Decode(newItem.image));
+        List<int>? compressedResidentProfile = await compressImage(
+            base64Decode(newItem.residentProfile));
+        List<int>? compressedImage = await compressImage(
+            base64Decode(newItem.image));
 
         // Check if the compression was successful
         if (compressedResidentProfile != null && compressedImage != null) {
@@ -351,7 +397,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
-
 // Function to retrieve data from the local database
   Future<List<Map<String, dynamic>>> getLocalData() async {
     return await _database.query(_tableName);
@@ -362,7 +407,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     Uint8List uint8ImageBytes = Uint8List.fromList(imageBytes);
 
     // Specify the compression quality (0 to 100, where 100 means no compression)
-    int quality =30;
+    int quality = 30;
 
     // Compress the image
     List<int> compressedBytes = await FlutterImageCompress.compressWithList(
@@ -371,7 +416,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     );
 
     // Return the compressed image bytes as Uint8List
-    return compressedBytes.isNotEmpty ? Uint8List.fromList(compressedBytes) : null;
+    return compressedBytes.isNotEmpty
+        ? Uint8List.fromList(compressedBytes)
+        : null;
   }
 
 
@@ -381,19 +428,20 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     setState(() {
       List<ActiveRequestCard> currentFetch = result
-          .map((data) => ActiveRequestCard(
-        id: data['id'],
-        reportId: data['reportId'],
-        name: data['name'],
-        emergencyType: data['emergencyType'],
-        date: data['date'],
-        locationName: data['locationName'],
-        locationLink: data['locationLink'],
-        phoneNumber: data['phoneNumber'],
-        message: data['message'],
-        residentProfile: base64Encode(data['residentProfile']),
-        image: base64Encode(data['image']),
-      ))
+          .map((data) =>
+          ActiveRequestCard(
+            id: data['id'],
+            reportId: data['reportId'],
+            name: data['name'],
+            emergencyType: data['emergencyType'],
+            date: data['date'],
+            locationName: data['locationName'],
+            locationLink: data['locationLink'],
+            phoneNumber: data['phoneNumber'],
+            message: data['message'],
+            residentProfile: base64Encode(data['residentProfile']),
+            image: base64Encode(data['image']),
+          ))
           .toList();
 
       // Update the activeRequestList
@@ -408,9 +456,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
-
   Future<void> removeItem(int index, int reportId) async {
-
     var connectivityResult = await (Connectivity().checkConnectivity());
 
     if (connectivityResult != ConnectivityResult.none) {
@@ -437,7 +483,52 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         builder: (context) {
           return AlertDialog(
             title: Text('No Internet Connection'),
-            content: Text('Please check your internet connection and try again.'),
+            content: Text(
+                'Please check your internet connection and try again.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> ArchiveItem(int index, int reportId) async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+
+    if (connectivityResult != ConnectivityResult.none) {
+      // There is an internet connection, perform operations
+      setState(() {
+        // Remove the item from the list
+        activeRequestList.removeAt(index);
+        insertArchiveData();
+
+        // Update the previous list length and notify the parent widget
+        savePreviousListLength(activeRequestList.length);
+        updatePreviousListLength(activeRequestList.length);
+      });
+
+      // Delete the corresponding record from the local database
+      await _database.delete(
+        _tableName,
+        where: 'reportId = ?',
+        whereArgs: [reportId],
+      );
+    } else {
+      // No internet connection, show a dialog or perform other actions
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('No Internet Connection'),
+            content: Text(
+                'Please check your internet connection and try again.'),
             actions: <Widget>[
               TextButton(
                 onPressed: () {
@@ -458,7 +549,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     print('Loaded Previous List Length: $savedPreviousListLength');
     setState(() {
       previousListLength = savedPreviousListLength;
-      widget.updatePreviousListLength(previousListLength); // Call the callback function
+      widget.updatePreviousListLength(
+          previousListLength); // Call the callback function
     });
   }
 
@@ -540,7 +632,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                   child: ClipOval(
                     clipBehavior: Clip.hardEdge,
                     child: CachedMemoryImage(
-                      uniqueKey: 'app://imageProfile/${activeRequestCard?.reportId}',
+                      uniqueKey: 'app://imageProfile/${activeRequestCard
+                          ?.reportId}',
                       base64: activeRequestCard?.residentProfile,
                       fit: BoxFit.cover,
                     ),
@@ -554,28 +647,58 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                     Text('Date: ${activeRequestCard?.date}'),
                   ],
                 ),
-                trailing: GestureDetector(
-                  onTap: () {
-                    AwesomeDialog(
-                      context: context,
-                      dialogType: DialogType.warning,
-                      animType: AnimType.rightSlide,
-                      btnOkColor: Color.fromRGBO(51, 71, 246, 1),
-                      title: 'Confirm Rescue',
-                      desc: 'Are you sure you want to accept this report? ',
-                      btnCancelOnPress: () {},
-                      btnOkOnPress: () {
-                        removeItem(index, activeRequestCard!.reportId);
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        AwesomeDialog(
+                          context: context,
+                          dialogType: DialogType.warning,
+                          animType: AnimType.rightSlide,
+                          btnOkColor: Color.fromRGBO(51, 71, 246, 1),
+                          title: 'Confirm Rescue',
+                          desc: 'Are you sure you want to accept this report? ',
+                          btnCancelOnPress: () {},
+                          btnOkOnPress: () {
+                            removeItem(index, activeRequestCard!.reportId);
+                          },
+                          dismissOnTouchOutside: false,
+                        )
+                          ..show();
                       },
+                      child: Icon(
+                        Icons.check,
+                        color: Colors.green,
+                        size: 30.0,
+                      ),
+                    ),
+                    SizedBox(width: 10.0), // Add some space between icons
+                    GestureDetector(
+                      onTap: () {
+                        AwesomeDialog(
+                          context: context,
+                          dialogType: DialogType.warning,
+                          animType: AnimType.rightSlide,
+                          btnOkColor: Color.fromRGBO(51, 71, 246, 1),
+                          title: 'Archive Rescue',
+                          desc: 'Are you sure you want to archive this report? ',
+                          btnCancelOnPress: () {},
+                          btnOkOnPress: () {
+                            ArchiveItem(index, activeRequestCard!.reportId);
+                          },
+                          dismissOnTouchOutside: false,
+                        )
+                          ..show();
 
-                      dismissOnTouchOutside: false,
-                    )..show();
-                  },
-                  child: Icon(
-                    Icons.check,
-                    color: Colors.green,
-                    size: 30.0,
-                  ),
+                      },
+                      child: Icon(
+                        Icons.close,
+                        color: Colors.red,
+                        size: 30.0,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Container(
@@ -588,75 +711,91 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        SizedBox(height: 5.0,),
-                        SizedBox(height: 5.0,),
-                        Row(
-                          children: [
-                            Text('Location Name: ',),
-                            SizedBox(width: 5.0,),
-                            Flexible(child: Text(activeRequestCard?.locationName, softWrap: true)),
-                          ],
-                        ),
-                        SizedBox(height: 5.0,),
-                        Row(
-                          children: [
-                            Text('Location Link: ', style: TextStyle(color: Colors.black)),
-                            SizedBox(width: 5.0,),
-                            Flexible(
-                              child: GestureDetector(
-                                onTap: () {
-                                  launch(activeRequestCard?.locationLink);
-                                },
-                                child: Text(
-                                  '${activeRequestCard?.locationLink}',
-                                  softWrap: true,
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    decoration: TextDecoration.underline,
+                        Container(
+                          width: 500,
+                          child: Visibility(
+                            visible: expandedCardIndex == index,
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 5.0),
+                                  SizedBox(height: 5.0),
+                                  Row(
+                                    children: [
+                                      Text('Location Name: '),
+                                      SizedBox(width: 5.0),
+                                      Flexible(child: Text(activeRequestCard?.locationName ?? "", softWrap: true)),
+                                    ],
                                   ),
-                                ),
+                                  SizedBox(height: 5.0),
+                                  Row(
+                                    children: [
+                                      Text('Location Link: ', style: TextStyle(color: Colors.black)),
+                                      SizedBox(width: 5.0),
+                                      Flexible(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            launch(activeRequestCard?.locationLink ?? "");
+                                          },
+                                          child: Text(
+                                            '${activeRequestCard?.locationLink ?? ""}',
+                                            softWrap: true,
+                                            style: TextStyle(
+                                              color: Colors.blue,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 5.0),
+                                  GestureDetector(
+                                    onTap: () {
+                                      launch('tel:+${activeRequestCard?.phoneNumber}');
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Text('Phone Number: '),
+                                        SizedBox(width: 5.0),
+                                        Text(
+                                          '+${activeRequestCard?.phoneNumber ?? ""}',
+                                          style: TextStyle(
+                                            color: Colors.blue,
+                                            decoration: TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 5.0),
+                                  Row(
+                                    children: [
+                                      Text('Message: '),
+                                      SizedBox(width: 5.0),
+                                      Flexible(child: Text(activeRequestCard?.message ?? "", softWrap: true)),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10.0),
+                                  Container(
+                                    alignment: Alignment.center,
+                                    child: activeRequestCard?.image != null
+                                        ? CachedMemoryImage(
+                                      uniqueKey: 'app://image/${activeRequestCard?.reportId}',
+                                      base64: activeRequestCard?.image,
+                                    )
+                                        : Placeholder(),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 5.0,),
-                        GestureDetector(
-                          onTap: () {
-                            launch('tel:+${activeRequestCard?.phoneNumber}');
-                          },
-                          child: Row(
-                            children: [
-                              Text('Phone Number: '),
-                              SizedBox(width: 5.0,),
-                              Text(
-                                '+${activeRequestCard?.phoneNumber}',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                        SizedBox(height: 5.0,),
-                        Row(
-                          children: [
-                            Text('Message: ',),
-                            SizedBox(width: 5.0,),
-                            Flexible(child: Text(activeRequestCard?.message, softWrap: true)),
-                          ],
-                        ),
-                        SizedBox(height: 10.0,),
-                        Container(
-                          alignment: Alignment.center,
-                          child: activeRequestCard?.image != null
-                              ? CachedMemoryImage(
-                            uniqueKey: 'app://image/${activeRequestCard?.reportId}',
-                            base64: activeRequestCard?.image,
-                          )
-                              : Placeholder(),
-                        ),
+
                       ],
                     ),
                   ),
@@ -668,8 +807,9 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       ),
     );
   }
+
 }
-Future<String> getUserEmail() async {
+  Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }
