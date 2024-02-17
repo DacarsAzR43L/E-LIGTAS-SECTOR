@@ -563,20 +563,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
-  void updateCards() {
-    if (selectedEmergencyType == 'All') {
-      // Show all cards
-      fetchData();
-    } else {
-      // Show cards with the selected emergency type
-      List<ActiveRequestCard> filteredList = activeRequestList
-          .where((card) => card.emergencyType == selectedEmergencyType)
-          .toList();
-      setState(() {
-        activeRequestList = filteredList;
-      });
-    }
-  }
 
 
   @override
@@ -591,26 +577,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Active Reports'),
-        actions: [
-          // Add a DropdownButton to the app bar
-          DropdownButton<String>(
-            value: selectedEmergencyType,
-            items: ['All', 'Fire', 'Medical', 'Crime', 'Accident']
-                .map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                selectedEmergencyType = newValue ?? 'All';
-                // Update the cards based on the selected emergency type
-                updateCards();
-              });
-            },
-          ),
-        ],
       ),
       body: activeRequestList.isEmpty
           ? Center(
@@ -861,7 +827,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 }
-Future<String> getUserEmail() async {
+  Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }
