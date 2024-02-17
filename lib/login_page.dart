@@ -68,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
               break;
 
 
-            case 'User account is not active':
+            case 'User account is not verified':
               Navigator.of(context).pop();
               AwesomeDialog(
                 context: context,

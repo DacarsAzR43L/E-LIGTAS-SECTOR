@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sizer/sizer.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,6 +78,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   ActiveRequestCard? activeRequestCard;
   final String _tableName = 'active_requests11';
   bool hasInternetConnection = false;
+  String selectedEmergencyType = 'All'; // Default selected value
 
 
   //Responder Info
@@ -120,7 +122,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
   void startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 15), (timer) {
       fetchData();
     });
   }
@@ -185,7 +187,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     }
   }
 
-  Future<void> insertData() async {
+  Future<void> insertData(int reportId) async {
     final String apiUrl = 'https://eligtas.site/public/storage/accept_responder_report.php';
 
     try {
@@ -195,7 +197,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           'status': status,
           'responder_name': responderName,
           'userfrom': userFrom,
-          'reportId': activeRequestCard?.reportId.toString(),
+          'reportId': reportId.toString(),
           // Keep it as an integer
         },
       );
@@ -230,7 +232,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     }
   }
 
-  Future<void> insertArchiveData() async {
+  Future<void> insertArchiveData(int reportId) async {
     final String apiUrl = 'https://eligtas.site/public/storage/accept_responder_report.php';
 
     try {
@@ -240,8 +242,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           'status': statusArchive,
           'responder_name': responderName,
           'userfrom': userFrom,
-          'reportId': activeRequestCard?.reportId.toString(),
-          // Keep it as an integer
+          'reportId': reportId.toString(),
+
         },
       );
 
@@ -351,8 +353,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         // New item found, perform necessary actions
         // For example, show a notification
         LocalNotifications.showSimpleNotification(
-          title: "New Item Notification",
-          body: "A new item has been added!",
+          title: "NEW EMERGENCY REPORT",
+          body: "A new report has been received!",
           payload: "New item data: ${newItem.reportId}",
         );
 
@@ -464,7 +466,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       setState(() {
         // Remove the item from the list
         activeRequestList.removeAt(index);
-        insertData();
+        print("Removing item with reportId: $reportId");
+        insertData(reportId);
         // Update the previous list length and notify the parent widget
         savePreviousListLength(activeRequestList.length);
         updatePreviousListLength(activeRequestList.length);
@@ -507,7 +510,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
       setState(() {
         // Remove the item from the list
         activeRequestList.removeAt(index);
-        insertArchiveData();
+        insertArchiveData(reportId);
 
         // Update the previous list length and notify the parent widget
         savePreviousListLength(activeRequestList.length);
@@ -559,6 +562,23 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     prefs.setInt('previousListLength', length);
   }
 
+
+  void updateCards() {
+    if (selectedEmergencyType == 'All') {
+      // Show all cards
+      fetchData();
+    } else {
+      // Show cards with the selected emergency type
+      List<ActiveRequestCard> filteredList = activeRequestList
+          .where((card) => card.emergencyType == selectedEmergencyType)
+          .toList();
+      setState(() {
+        activeRequestList = filteredList;
+      });
+    }
+  }
+
+
   @override
   void dispose() {
     _timer.cancel();
@@ -571,6 +591,26 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Active Reports'),
+        actions: [
+          // Add a DropdownButton to the app bar
+          DropdownButton<String>(
+            value: selectedEmergencyType,
+            items: ['All', 'Fire', 'Medical', 'Crime', 'Accident']
+                .map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                selectedEmergencyType = newValue ?? 'All';
+                // Update the cards based on the selected emergency type
+                updateCards();
+              });
+            },
+          ),
+        ],
       ),
       body: activeRequestList.isEmpty
           ? Center(
@@ -600,7 +640,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
 
   Widget _buildActiveRequestCard(int index) {
-    activeRequestCard = activeRequestList[index];
+    ActiveRequestCard activeRequestCard = activeRequestList[index];
 
     if (index >= previousListLength) {
       newItemsCount++;
@@ -624,7 +664,19 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           key: cardKey,
           margin: EdgeInsets.all(8.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Padding(
+                padding: EdgeInsets.only(top: 1.h),
+                child: Text(
+                  'Report ID: ${activeRequestCard.reportId}',
+                  style: TextStyle(
+                    fontSize: 12.0, // You can adjust the font size
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               ListTile(
                 leading: Container(
                   width: 50.0,
@@ -633,18 +685,18 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                     clipBehavior: Clip.hardEdge,
                     child: CachedMemoryImage(
                       uniqueKey: 'app://imageProfile/${activeRequestCard
-                          ?.reportId}',
-                      base64: activeRequestCard?.residentProfile,
+                          .reportId}',
+                      base64: activeRequestCard.residentProfile,
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                title: Text(activeRequestCard!.name),
+                title: Text(activeRequestCard.name),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Emergency Type: ${activeRequestCard?.emergencyType}'),
-                    Text('Date: ${activeRequestCard?.date}'),
+                    Text('Emergency Type: ${activeRequestCard.emergencyType}'),
+                    Text('Date: ${activeRequestCard.date}'),
                   ],
                 ),
                 trailing: Row(
@@ -661,7 +713,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                           desc: 'Are you sure you want to accept this report? ',
                           btnCancelOnPress: () {},
                           btnOkOnPress: () {
-                            removeItem(index, activeRequestCard!.reportId);
+                            removeItem(index, activeRequestCard.reportId);
                           },
                           dismissOnTouchOutside: false,
                         )
@@ -685,7 +737,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                           desc: 'Are you sure you want to archive this report? ',
                           btnCancelOnPress: () {},
                           btnOkOnPress: () {
-                            ArchiveItem(index, activeRequestCard!.reportId);
+                            ArchiveItem(index, activeRequestCard.reportId);
                           },
                           dismissOnTouchOutside: false,
                         )
@@ -728,7 +780,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                                     children: [
                                       Text('Location Name: '),
                                       SizedBox(width: 5.0),
-                                      Flexible(child: Text(activeRequestCard?.locationName ?? "", softWrap: true)),
+                                      Flexible(child: Text(activeRequestCard.locationName ?? "", softWrap: true)),
                                     ],
                                   ),
                                   SizedBox(height: 5.0),
@@ -739,10 +791,10 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                                       Flexible(
                                         child: GestureDetector(
                                           onTap: () {
-                                            launch(activeRequestCard?.locationLink ?? "");
+                                            launch(activeRequestCard.locationLink ?? "");
                                           },
                                           child: Text(
-                                            '${activeRequestCard?.locationLink ?? ""}',
+                                            '${activeRequestCard.locationLink ?? ""}',
                                             softWrap: true,
                                             style: TextStyle(
                                               color: Colors.blue,
@@ -756,14 +808,14 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                                   SizedBox(height: 5.0),
                                   GestureDetector(
                                     onTap: () {
-                                      launch('tel:+${activeRequestCard?.phoneNumber}');
+                                      launch('tel:+${activeRequestCard.phoneNumber}');
                                     },
                                     child: Row(
                                       children: [
                                         Text('Phone Number: '),
                                         SizedBox(width: 5.0),
                                         Text(
-                                          '+${activeRequestCard?.phoneNumber ?? ""}',
+                                          '+${activeRequestCard.phoneNumber ?? ""}',
                                           style: TextStyle(
                                             color: Colors.blue,
                                             decoration: TextDecoration.underline,
@@ -777,16 +829,16 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                                     children: [
                                       Text('Message: '),
                                       SizedBox(width: 5.0),
-                                      Flexible(child: Text(activeRequestCard?.message ?? "", softWrap: true)),
+                                      Flexible(child: Text(activeRequestCard.message ?? "", softWrap: true)),
                                     ],
                                   ),
                                   SizedBox(height: 10.0),
                                   Container(
                                     alignment: Alignment.center,
-                                    child: activeRequestCard?.image != null
+                                    child: activeRequestCard.image != null
                                         ? CachedMemoryImage(
-                                      uniqueKey: 'app://image/${activeRequestCard?.reportId}',
-                                      base64: activeRequestCard?.image,
+                                      uniqueKey: 'app://image/${activeRequestCard.reportId}',
+                                      base64: activeRequestCard.image,
                                     )
                                         : Placeholder(),
                                   ),
@@ -809,7 +861,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 }
-  Future<String> getUserEmail() async {
+Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }

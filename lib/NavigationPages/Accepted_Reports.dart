@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
@@ -460,7 +461,19 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
               key: cardKey,
               margin: EdgeInsets.all(8.0),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Padding(
+                    padding: EdgeInsets.only(top: 1.h),
+                    child: Text(
+                      'Report ID: ${acceptedReportsCard.reportId}',
+                      style: TextStyle(
+                        fontSize: 12.0, // You can adjust the font size
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                   ListTile(
                     leading: Container(
                       width: 50.0,
