@@ -432,23 +432,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
 
     Key cardKey = Key('acceptedReportsCard_$index');
 
-    // Check if the current report's date is different from the previous one
-    bool showDivider = true; // Show divider by default
-    if (index > 0) {
-      showDivider = getTrimmedDate(acceptedReportslist[index - 1].date) !=
-          getTrimmedDate(acceptedReportsCard.date);
-    }
-
-    // Check if the current report's date is the same as the next one
-    bool sameDateAsNext = false;
-    if (index < acceptedReportslist.length - 1) {
-      sameDateAsNext = getTrimmedDate(acceptedReportsCard.date) ==
-          getTrimmedDate(acceptedReportslist[acceptedReportslist.length - index - 1].date);
-    }
 
     return Column(
       children: [
-        if (showDivider) _buildDivider(getTrimmedDate(acceptedReportsCard.date)),
         KeyedSubtree(
           key: cardKey,
           child: GestureDetector(
@@ -485,7 +471,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                       child: ClipOval(
                         clipBehavior: Clip.hardEdge,
                         child: CachedMemoryImage(
-                          uniqueKey: 'app://imageProfile/${acceptedReportsCard.reportId}',
+                          uniqueKey: 'app://imageProfile/${acceptedReportsCard
+                              .reportId}',
                           base64: acceptedReportsCard.residentProfile,
                           fit: BoxFit.cover,
                         ),
@@ -495,7 +482,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Emergency Type: ${acceptedReportsCard.emergencyType}'),
+                        Text('Emergency Type: ${acceptedReportsCard
+                            .emergencyType}'),
                         Text('Date: ${acceptedReportsCard.date}'),
                       ],
                     ),
@@ -510,20 +498,24 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('Details:',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                             SizedBox(height: 5.0),
                             SizedBox(height: 5.0),
                             Row(
                               children: [
                                 Text('Location Name: '),
                                 SizedBox(width: 5.0),
-                                Flexible(child: Text(acceptedReportsCard.locationName, softWrap: true)),
+                                Flexible(child: Text(
+                                    acceptedReportsCard.locationName,
+                                    softWrap: true)),
                               ],
                             ),
                             SizedBox(height: 5.0),
                             Row(
                               children: [
-                                Text('Location Link: ', style: TextStyle(color: Colors.black)),
+                                Text('Location Link: ',
+                                    style: TextStyle(color: Colors.black)),
                                 SizedBox(width: 5.0),
                                 Flexible(
                                   child: GestureDetector(
@@ -545,7 +537,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                             SizedBox(height: 5.0),
                             GestureDetector(
                               onTap: () {
-                                launch('tel:+${acceptedReportsCard.phoneNumber}');
+                                launch(
+                                    'tel:+${acceptedReportsCard.phoneNumber}');
                               },
                               child: Row(
                                 children: [
@@ -566,7 +559,9 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               children: [
                                 Text('Message: '),
                                 SizedBox(width: 5.0),
-                                Flexible(child: Text(acceptedReportsCard.message, softWrap: true)),
+                                Flexible(child: Text(
+                                    acceptedReportsCard.message,
+                                    softWrap: true)),
                               ],
                             ),
                             SizedBox(height: 10.0),
@@ -574,7 +569,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               alignment: Alignment.center,
                               child: acceptedReportsCard.image != null
                                   ? CachedMemoryImage(
-                                uniqueKey: 'app://image/${acceptedReportsCard.reportId}',
+                                uniqueKey: 'app://image/${acceptedReportsCard
+                                    .reportId}',
                                 base64: acceptedReportsCard.image,
                               )
                                   : Placeholder(),
@@ -586,27 +582,28 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               child: TextButton(
                                 onPressed: () async {
                                   // Navigate to the new page
-                                final result = await Navigator.push(
+                                  final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => SpotReport(
-                                        reportId: acceptedReportsCard.reportId.toString(),
-                                        cardIndex: index.toString(),
-                                      ),
+                                      builder: (context) =>
+                                          SpotReport(
+                                            reportId: acceptedReportsCard
+                                                .reportId.toString(),
+                                            cardIndex: index.toString(),
+                                          ),
                                     ),
                                   );
 
-                                if (result != null) {
-                                  // Perform actions based on the result
-                                  print('Result from new page: $result');
+                                  if (result != null) {
+                                    // Perform actions based on the result
+                                    print('Result from new page: $result');
 
-                                  // Here, you can perform actions based on the result
-                                  // or use it to trigger a refresh on the previous page.
-                                  // For example, if you have a function to initialize the
-                                  // previous page, you can call it here.
-                                  fetchData();
-                                }
-
+                                    // Here, you can perform actions based on the result
+                                    // or use it to trigger a refresh on the previous page.
+                                    // For example, if you have a function to initialize the
+                                    // previous page, you can call it here.
+                                    fetchData();
+                                  }
                                 },
                                 child: Text(
                                   'Create Spot Report',
@@ -618,13 +615,16 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                                   ),
                                 ),
                                 style: ButtonStyle(
-                                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                  shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
                                     RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10.0),
-                                      side: BorderSide(color: Color.fromRGBO(51, 71, 246, 1)),
+                                      side: BorderSide(color: Color.fromRGBO(
+                                          51, 71, 246, 1)),
                                     ),
                                   ),
-                                  backgroundColor: MaterialStateProperty.all<Color>(Color.fromRGBO(51, 71, 246, 1)),
+                                  backgroundColor: MaterialStateProperty.all<
+                                      Color>(Color.fromRGBO(51, 71, 246, 1)),
                                 ),
                               ),
                             ),
@@ -643,23 +643,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
     );
   }
 
-  Widget _buildDivider(String date) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      color: Colors.grey[300],
-      child: Text(
-        date,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
 }
-
-
-
 
   Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();

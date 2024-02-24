@@ -6,7 +6,7 @@ import 'NavigationPages/Active_Requests.dart';
 import 'NavigationPages/Profile.dart';
 import 'login_page.dart';
 import 'package:badges/badges.dart'as badges;
-import 'package:e_ligtas_sector/NavigationPages/Manual_Reports.dart';
+import 'package:e_ligtas_sector/NavigationPages/FullReport.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.pending_actions_outlined),
-            label: 'Manual Report',
+            label: 'Full Report',
           ),
         ],
         currentIndex: _selectedIndex,
@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 2:
-        return ManualReports();
+        return FullReport();
       default:
         return Container();
     }
