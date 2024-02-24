@@ -280,17 +280,17 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
   // Fetch data from the server and update local database
   Future<void> fetchData() async {
-    // Get the user email
-    String userEmail = await getUserEmail();
-
-    // Call fetchDataFromPHP with the user email
-    await fetchDataFromPHP(userEmail);
-
-    print(userEmail);
-
     try {
-      // Your API endpoint
-      final String apiUrl = 'https://eligtas.site/public/storage/get_active_reports.php';
+      // Get the user email
+      String userEmail = await getUserEmail();
+
+      // Call fetchDataFromPHP with the user email
+      await fetchDataFromPHP(userEmail);
+
+      print(userEmail);
+
+      // Your API endpoint with the userFrom parameter
+      final String apiUrl = 'https://eligtas.site/public/storage/get_active_reports.php?userfrom=$userFrom';
 
       // Perform the HTTP GET request
       final response = await http.get(Uri.parse(apiUrl));
@@ -303,23 +303,22 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         // Convert the server response to a list of ActiveRequestCard objects
         List<ActiveRequestCard> currentFetch = responseData
             .asMap()
-            .map((index, data) =>
-            MapEntry(
-              index,
-              ActiveRequestCard(
-                id: index,
-                reportId: data['report_id'],
-                name: data['resident_name'],
-                emergencyType: data['emergency_type'],
-                date: data['dateandTime'],
-                locationName: data['locationName'],
-                locationLink: data['locationLink'],
-                phoneNumber: data['phoneNumber'],
-                message: data['message'],
-                residentProfile: data['residentProfile'],
-                image: data['imageEvidence'],
-              ),
-            ))
+            .map((index, data) => MapEntry(
+          index,
+          ActiveRequestCard(
+            id: index,
+            reportId: data['report_id'],
+            name: data['resident_name'],
+            emergencyType: data['emergency_type'],
+            date: data['dateandTime'],
+            locationName: data['locationName'],
+            locationLink: data['locationLink'],
+            phoneNumber: data['phoneNumber'],
+            message: data['message'],
+            residentProfile: data['residentProfile'],
+            image: data['imageEvidence'],
+          ),
+        ))
             .values
             .toList();
 

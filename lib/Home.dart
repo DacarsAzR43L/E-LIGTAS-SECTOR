@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
               badgeStyle: badges.BadgeStyle(),
               child: Icon(Icons.report_outlined),
             ),
-            label: 'Active Reports',
+            label: 'Pending Reports',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.pending_actions_outlined),

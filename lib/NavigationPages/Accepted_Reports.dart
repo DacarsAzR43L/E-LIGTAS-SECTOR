@@ -15,6 +15,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:ui';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+import '../SpotReport.dart';
+
 class AcceptedReportsCard {
   final int id;
   final String name;
@@ -49,6 +51,8 @@ class AcceptedReportsScreen extends StatefulWidget {
 }
 
 class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with AutomaticKeepAliveClientMixin {
+
+
   int? expandedCardIndex;
   List<AcceptedReportsCard> acceptedReportslist = [];
   int newItemsCount = 0;
@@ -575,6 +579,56 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               )
                                   : Placeholder(),
                             ),
+
+                            SizedBox(height: 10.0),
+
+                            Center(
+                              child: TextButton(
+                                onPressed: () async {
+                                  // Navigate to the new page
+                                final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SpotReport(
+                                        reportId: acceptedReportsCard.reportId.toString(),
+                                        cardIndex: index.toString(),
+                                      ),
+                                    ),
+                                  );
+
+                                if (result != null) {
+                                  // Perform actions based on the result
+                                  print('Result from new page: $result');
+
+                                  // Here, you can perform actions based on the result
+                                  // or use it to trigger a refresh on the previous page.
+                                  // For example, if you have a function to initialize the
+                                  // previous page, you can call it here.
+                                  fetchData();
+                                }
+
+                                },
+                                child: Text(
+                                  'Create Spot Report',
+                                  style: TextStyle(
+                                    fontFamily: 'Montserrat-Regular',
+                                    fontSize: 24.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ButtonStyle(
+                                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      side: BorderSide(color: Color.fromRGBO(51, 71, 246, 1)),
+                                    ),
+                                  ),
+                                  backgroundColor: MaterialStateProperty.all<Color>(Color.fromRGBO(51, 71, 246, 1)),
+                                ),
+                              ),
+                            ),
+
                           ],
                         ),
                       ),
