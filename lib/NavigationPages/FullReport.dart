@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cached_memory_image/cached_memory_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sizer/sizer.dart';
@@ -48,9 +49,14 @@ class FullReport extends StatefulWidget {
 }
 
 class _FullReportState extends State<FullReport> with SingleTickerProviderStateMixin {
+
+
   late TabController _tabController;
   List<VerifiedRecordsCard> verifiedRecords = [];
   List<ErrorneousRecordsCard> errorneousRecords = [];
+
+  bool isConnected = true;
+
 
   @override
   void initState() {
@@ -116,6 +122,24 @@ class _FullReportState extends State<FullReport> with SingleTickerProviderStateM
     }
   }
 
+  Future<void> _refreshData() async {
+    await fetchData();
+    await fetchErrorneousData();
+  }
+
+
+  Future<void> checkInternetConnection() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      setState(() {
+        isConnected = false;
+      });
+    } else {
+      setState(() {
+        isConnected = true;
+      });
+    }
+  }
 
 
   String getTrimmedDate(String fullDate) {
@@ -260,59 +284,69 @@ class _FullReportState extends State<FullReport> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 1.0.h),
-              child: TabBar(
-                controller: _tabController,
-                tabs: [
-                  Tab(text: 'Verified'),
-                  Tab(text: 'Errorneous'),
-                ],
+      body: DefaultTabController(
+        length: 2,
+        child: NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: TabBar(
+                  tabs: [
+                    Tab(text: 'Verified'),
+                    Tab(text: 'Errorneous'),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Content for the 'Verified' tab
-                  SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.all(2.0.h),
-                      child: Center(
-                        child: Column(
-                          children: verifiedRecords.map((record) {
-                            return _buildVerifiedReportsCard(verifiedRecords.indexOf(record));
-                          }).toList(),
-                        ),
-                      ),
+            ];
+          },
+          body: TabBarView(
+            children: [
+              // Content for the 'Verified' tab
+              RefreshIndicator(
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.all(2.0.h),
+                    child: Center(
+                      child: verifiedRecords.isNotEmpty
+                          ? Column(
+                        children: verifiedRecords.map((record) {
+                          return _buildVerifiedReportsCard(
+                              verifiedRecords.indexOf(record));
+                        }).toList(),
+                      )
+                          : Text('No Data available'),
                     ),
                   ),
-                  // Content for the 'Errorneous' tab
-                  SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.all(2.0.h),
-                      child: Center(
-                        child: Column(
-                          children: errorneousRecords.map((record) {
-                            return Column(
-                              children: [
-                                _buildErrorneousDivider(getTrimmedDate(record.date)),
-                                _buildErrorneousReportsCard(
-                                    errorneousRecords.indexOf(record)),
-                              ],
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                ),
+              ),
+              // Content for the 'Errorneous' tab
+              RefreshIndicator(
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.all(2.0.h),
+                    child: Center(
+                      child: errorneousRecords.isNotEmpty
+                          ? Column(
+                        children: errorneousRecords.map((record) {
+                          return Column(
+                            children: [
+                              _buildErrorneousDivider(
+                                  getTrimmedDate(record.date)),
+                              _buildErrorneousReportsCard(
+                                  errorneousRecords.indexOf(record)),
+                            ],
+                          );
+                        }).toList(),
+                      )
+                          : Text('No Data available'),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_memory_image/cached_memory_image.dart';
+import 'package:card_swiper/card_swiper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +30,7 @@ class ActiveRequestCard {
   final phoneNumber;
   final message;
   final residentProfile;
-  final image;
+  final List<String> image;
   final locationName;
   final reportId;
 
@@ -78,7 +79,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   ActiveRequestCard? activeRequestCard;
   final String _tableName = 'active_requests11';
   bool hasInternetConnection = false;
-  String selectedEmergencyType = 'All'; // Default selected value
 
 
   //Responder Info
@@ -278,7 +278,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
-  // Fetch data from the server and update local database
   Future<void> fetchData() async {
     try {
       // Get the user email
@@ -316,7 +315,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
             phoneNumber: data['phoneNumber'],
             message: data['message'],
             residentProfile: data['residentProfile'],
-            image: data['imageEvidence'],
+            image: (data['imageEvidence'] as List<dynamic>).cast<String>(), // Assuming 'imageEvidence' is a list of file paths
           ),
         ))
             .values
@@ -338,17 +337,16 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 
+
   // Compare the new data with the local database and update if necessary
-  Future<void> compareAndUpdateDatabase(
-      List<ActiveRequestCard> currentFetch) async {
+  Future<void> compareAndUpdateDatabase(List<ActiveRequestCard> currentFetch) async {
     // Retrieve data from the local database
     List<Map<String, dynamic>> localData = await _database.query(_tableName);
 
     // Perform the comparison and update the database
     // For simplicity, assuming 'reportId' is a unique identifier
     for (var newItem in currentFetch) {
-      if (!localData.any((element) =>
-      element['reportId'] == newItem.reportId)) {
+      if (!localData.any((element) => element['reportId'] == newItem.reportId)) {
         // New item found, perform necessary actions
         // For example, show a notification
         LocalNotifications.showSimpleNotification(
@@ -357,14 +355,18 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
           payload: "New item data: ${newItem.reportId}",
         );
 
-        // Convert image data to bytes
-        List<int>? compressedResidentProfile = await compressImage(
-            base64Decode(newItem.residentProfile));
-        List<int>? compressedImage = await compressImage(
-            base64Decode(newItem.image));
+        // Convert each image data to bytes
+        List<Uint8List?> compressedImages = [];
+        for (String imagePath in newItem.image) {
+          List<int>? imageBytes = await getImageBytesFromPath(imagePath);
+          if (imageBytes != null) {
+            List<int>? compressedImage = await compressImage(imageBytes);
+            compressedImages.add(compressedImage != null ? Uint8List.fromList(compressedImage) : null);
+          }
+        }
 
-        // Check if the compression was successful
-        if (compressedResidentProfile != null && compressedImage != null) {
+        // Check if the compression was successful for all images
+        if (compressedImages.every((image) => image != null)) {
           // Update the local database with compressed data
           await _database.insert(
             _tableName,
@@ -377,8 +379,8 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
               'locationLink': newItem.locationLink,
               'phoneNumber': newItem.phoneNumber,
               'message': newItem.message,
-              'residentProfile': compressedResidentProfile,
-              'image': compressedImage,
+              'residentProfile': await compressImage(base64Decode(newItem.residentProfile)),
+              'image': compressedImages,
             },
           );
         } else {
@@ -395,6 +397,18 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     // Update the previous list length
     updatePreviousListLength(activeRequestList.length);
+  }
+
+// Function to retrieve image bytes from file path
+  Future<List<int>?> getImageBytesFromPath(String imagePath) async {
+    try {
+      // Read image file as bytes
+      File imageFile = File(imagePath);
+      return await imageFile.readAsBytes();
+    } catch (e) {
+      print('Error reading image file: $e');
+      return null;
+    }
   }
 
 
@@ -429,20 +443,19 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
     setState(() {
       List<ActiveRequestCard> currentFetch = result
-          .map((data) =>
-          ActiveRequestCard(
-            id: data['id'],
-            reportId: data['reportId'],
-            name: data['name'],
-            emergencyType: data['emergencyType'],
-            date: data['date'],
-            locationName: data['locationName'],
-            locationLink: data['locationLink'],
-            phoneNumber: data['phoneNumber'],
-            message: data['message'],
-            residentProfile: base64Encode(data['residentProfile']),
-            image: base64Encode(data['image']),
-          ))
+          .map((data) => ActiveRequestCard(
+        id: data['id'],
+        reportId: data['reportId'],
+        name: data['name'],
+        emergencyType: data['emergencyType'],
+        date: data['date'],
+        locationName: data['locationName'],
+        locationLink: data['locationLink'],
+        phoneNumber: data['phoneNumber'],
+        message: data['message'],
+        residentProfile: base64Encode(data['residentProfile']),
+        image: [base64Encode(data['image'])], // Wrap in a list
+      ))
           .toList();
 
       // Update the activeRequestList
@@ -586,7 +599,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
               return CircularProgressIndicator();
             } else if (snapshot.data == true) {
               // Internet connection is available
-              return Text('No active reports available.');
+              return Text('No pending reports available.');
             } else {
               // No internet connection
               return Text('Please check your internet connection.');
@@ -798,15 +811,25 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                                     ],
                                   ),
                                   SizedBox(height: 10.0),
-                                  Container(
-                                    alignment: Alignment.center,
-                                    child: activeRequestCard.image != null
-                                        ? CachedMemoryImage(
-                                      uniqueKey: 'app://image/${activeRequestCard.reportId}',
-                                      base64: activeRequestCard.image,
-                                    )
-                                        : Placeholder(),
-                                  ),
+                              Container(
+                                width: double.infinity,
+                                height: 400,
+                                child: Swiper(
+                                  itemBuilder: (BuildContext context, int index) {
+                                    return Container(
+                                      alignment: Alignment.center,
+                                      child: Image.memory(
+                                        base64Decode(activeRequestCard.image[index]),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    );
+                                  },
+                                  itemCount: activeRequestCard.image.length,
+                                  pagination: SwiperPagination(), // Add pagination dots if needed
+                                  control: SwiperControl(), // Add control arrows if needed
+                                  // Other Swiper configurations
+                                ),
+                              ),
                                 ],
                               ),
                             ),

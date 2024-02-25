@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_memory_image/cached_memory_image.dart';
+import 'package:card_swiper/card_swiper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class AcceptedReportsCard {
   final phoneNumber;
   final message;
   final String residentProfile;
-  final String image;
+  final List<String> image;
   final locationName;
   final reportId;
 
@@ -163,8 +164,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
       hasData = true;
     });
 
-    final String apiUrl =
-        'https://eligtas.site/public/storage/get_accepted_reports.php';
+    final String apiUrl = 'https://eligtas.site/public/storage/get_accepted_reports.php';
 
     // Get the user email
     String userEmail = await getUserEmail();
@@ -201,7 +201,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                   phoneNumber: data['phoneNumber'],
                   message: data['message'],
                   residentProfile: data['residentProfile'],
-                  image: data['imageEvidence'],
+                  image: (data['imageEvidence'] as List<dynamic>).cast<String>(),
                 ),
               ))
               .values
@@ -228,8 +228,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
             // New items are added
             isLoading = false;
             print('New items added!');
-            print(
-                'New items count in current fetch: $newItemsCountInCurrentFetch');
+            print('New items count in current fetch: $newItemsCountInCurrentFetch');
 
             // Update the total new items count
             newItemsCount += newItemsCountInCurrentFetch;
@@ -258,8 +257,8 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
     }
   }
 
-  Future<void> updateLocalDatabase(
-      List<AcceptedReportsCard> currentFetch) async {
+
+  Future<void> updateLocalDatabase(List<AcceptedReportsCard> currentFetch) async {
     try {
       // Start a database transaction
       await _database.transaction((txn) async {
@@ -268,18 +267,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
           // Add additional checks and logging
           print('Inserting new data for reportId: ${newItem.reportId}');
 
-          if (newItem.residentProfile is String && newItem.image is String) {
+          if (newItem.residentProfile is String && newItem.image is List<String>) {
             // Convert image data to bytes
-            List<int> residentProfileBytes = base64Decode(
-                newItem.residentProfile);
-            List<int> imageBytes = base64Decode(newItem.image);
+            List<int> residentProfileBytes = base64Decode(newItem.residentProfile);
 
-            // Compress the image data
-            Uint8List? compressedResidentProfile = await compressImage(
-                residentProfileBytes);
-            Uint8List? compressedImage = await compressImage(imageBytes);
+            // Compress the residentProfile data
+            Uint8List? compressedResidentProfile = await compressImage(residentProfileBytes);
 
-            if (compressedResidentProfile != null && compressedImage != null) {
+            if (compressedResidentProfile != null) {
               // Insert the new data into the local database with compressed bytes
               await txn.insert(
                 'accepted_reports7',
@@ -294,17 +289,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                   'message': newItem.message,
                   'residentProfile': base64Encode(compressedResidentProfile),
                   // Convert Uint8List to String
-                  'image': base64Encode(compressedImage),
-                  // Convert Uint8List to String
+                  'imageEvidence': jsonEncode(newItem.image), // Store image paths as JSON
                 },
               );
             } else {
-              print('Skipping insertion for reportId ${newItem
-                  .reportId}: Failed to compress data');
+              print('Skipping insertion for reportId ${newItem.reportId}: Failed to compress residentProfile data');
             }
           } else {
-            print('Skipping insertion for reportId ${newItem
-                .reportId}: residentProfile and/or image is not a String');
+            print('Skipping insertion for reportId ${newItem.reportId}: residentProfile and/or image is not in the expected format');
           }
         }
       });
@@ -355,7 +347,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
             phoneNumber: data['phoneNumber'],
             message: data['message'],
             residentProfile: data['residentProfile'],
-            image: data['image'],
+            image: (jsonDecode(data['image']) as List<dynamic>).cast<String>(),
           ))
           .toList();
 
@@ -369,6 +361,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
       isLoading = false;
     });
   }
+
 
   Future<void> loadPreviousListLength() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -410,7 +403,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
           },
         )
             : Center(
-          child: Text('No data available'),
+          child: Text('No accepted data available'),
         ),
       ),
     );
@@ -566,14 +559,23 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                             ),
                             SizedBox(height: 10.0),
                             Container(
-                              alignment: Alignment.center,
-                              child: acceptedReportsCard.image != null
-                                  ? CachedMemoryImage(
-                                uniqueKey: 'app://image/${acceptedReportsCard
-                                    .reportId}',
-                                base64: acceptedReportsCard.image,
-                              )
-                                  : Placeholder(),
+                              width: double.infinity,
+                              height: 400,
+                              child: Swiper(
+                                itemBuilder: (BuildContext context, int index) {
+                                  return Container(
+                                    alignment: Alignment.center,
+                                    child: Image.memory(
+                                      base64Decode(acceptedReportsCard.image[index]),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  );
+                                },
+                                itemCount: acceptedReportsCard.image.length,
+                                pagination: SwiperPagination(), // Add pagination dots if needed
+                                control: SwiperControl(), // Add control arrows if needed
+                                // Other Swiper configurations
+                              ),
                             ),
 
                             SizedBox(height: 10.0),
