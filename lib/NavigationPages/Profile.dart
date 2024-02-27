@@ -1,9 +1,10 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
-
 import '../login_page.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -12,6 +13,15 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+
+  late Future<String?> userFromFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    userFromFuture = fetchUserFrom();
+  }
+
 
   Future<void> signOutUser() async {
 
@@ -54,6 +64,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     print(prefs.getBool('isLoggedIn'));
   }
 
+  Future<String?> fetchUserFrom() async {
+    final String apiUrl = 'https://eligtas.site/public/storage/get_userFrom.php';
+
+    String userEmail = await getUserEmail();
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {'email': userEmail},
+      );
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = json.decode(response.body);
+
+        // Check for errors in the response
+        if (responseData.containsKey('error')) {
+          print('Error: ${responseData['error']}');
+          return null;
+        }
+
+        // Check if the response contains 'userfrom' key
+        if (responseData.containsKey('userfrom')) {
+          // Assuming 'userfrom' is a string
+          String userfrom = responseData['userfrom'];
+          print('Userfrom: $userfrom');
+          return userfrom;
+        } else {
+          print('Error: Userfrom not found in the response.');
+          return null;
+        }
+      } else {
+        print('Error: ${response.reasonPhrase}');
+        return null;
+      }
+    } catch (error) {
+      print('Error: $error');
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +114,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: EdgeInsets.all(2.0),
         child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
@@ -73,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // You can replace the AssetImage with your actual image path
               ),
               SizedBox(height: 2.0.h),
-              FutureBuilder<String>(
+              FutureBuilder<String?>(
                 future: getUserEmail(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -82,54 +131,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return Text('Error: ${snapshot.error}');
                   } else {
                     String userName = snapshot.data ?? 'Your Name';
-                    return Text(
-                      userName,
-                      style: TextStyle(fontSize: 20.0.sp),
+                    return Column(
+                      children: [
+                        Text(
+                          userName,
+                          style: TextStyle(fontSize: 20.0.sp),
+                        ),
+                        FutureBuilder<String?>(
+                          future: userFromFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return CircularProgressIndicator(); // Show a loader while waiting for the data
+                            } else if (snapshot.hasError) {
+                              return Text('Error: ${snapshot.error}');
+                            } else {
+                              String userFrom = snapshot.data ?? 'Userfrom';
+                              return Text(
+                                'User from: $userFrom',
+                                style: TextStyle(fontSize: 16.0.sp),
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     );
                   }
                 },
               ),
-              Spacer(),
-              Container(
-                width: 90.w, // Adjust the width as needed
-                margin: EdgeInsets.fromLTRB(10, 8, 10, 16), // Adjust margin as needed
-                child:TextButton(
-                  onPressed: () {
-
-                    AwesomeDialog(
-                      context: context,
-                      dialogType: DialogType.warning,
-                      animType: AnimType.rightSlide,
-                      btnOkColor: Color.fromRGBO(51, 71, 246, 1),
-                      title: "Confirm Sign Out",
-                      desc: 'Are you sure you want to sign out?',
-                      btnCancelOnPress: () {},
-                      btnOkOnPress: () {
-                        signOutUser();
-
-                      },
-                      dismissOnTouchOutside: false,
-                    )..show();
-                  },
-                  child: Text('Sign Out',
-                    style: TextStyle(
-                      fontFamily: 'Montserrat-Regular',
-                      fontSize:20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),),
-                  style: ButtonStyle(
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                        side: BorderSide(color: Color.fromRGBO(51, 71, 246, 1)),
-                      ),
-                    ),
-                    backgroundColor: MaterialStatePropertyAll<Color>(Color.fromRGBO(51, 71, 246, 1)),
-                  ),
-                ),
-              ),
-              SizedBox(height: 2.0.h),
             ],
           ),
         ),
