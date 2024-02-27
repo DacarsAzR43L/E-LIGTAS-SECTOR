@@ -77,7 +77,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   int previousListLength;
   final Function(int) updatePreviousListLength;
   ActiveRequestCard? activeRequestCard;
-  final String _tableName = 'active_requests11';
+  final String _tableName = 'active_requests13';
   bool hasInternetConnection = false;
 
 
@@ -134,7 +134,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/active_requests11.db';
+    String path = '${documentsDirectory.path}/active_requests13.db';
 
     _database = await openDatabase(
       path,
@@ -299,7 +299,6 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
         // Decode the response body
         final List<dynamic> responseData = json.decode(response.body);
 
-        // Convert the server response to a list of ActiveRequestCard objects
         List<ActiveRequestCard> currentFetch = responseData
             .asMap()
             .map((index, data) => MapEntry(
@@ -588,7 +587,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Active Reports'),
+        title: Text('Pending Reports'),
       ),
       body: activeRequestList.isEmpty
           ? Center(
@@ -811,25 +810,26 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
                                     ],
                                   ),
                                   SizedBox(height: 10.0),
-                              Container(
-                                width: double.infinity,
-                                height: 400,
-                                child: Swiper(
-                                  itemBuilder: (BuildContext context, int index) {
-                                    return Container(
-                                      alignment: Alignment.center,
-                                      child: Image.memory(
-                                        base64Decode(activeRequestCard.image[index]),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    );
-                                  },
-                                  itemCount: activeRequestCard.image.length,
-                                  pagination: SwiperPagination(), // Add pagination dots if needed
-                                  control: SwiperControl(), // Add control arrows if needed
-                                  // Other Swiper configurations
-                                ),
-                              ),
+                                  Container(
+                                    width: double.infinity,
+                                    height: 400,
+                                    child: Swiper(
+                                      loop: false,
+                                      itemBuilder: (BuildContext context, int index) {
+                                        return Container(
+                                          alignment: Alignment.center,
+                                          child: Image.memory(
+                                            base64Decode(activeRequestCard.image[index]),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        );
+                                      },
+                                      itemCount: activeRequestCard.image.length,
+                                      pagination: SwiperPagination(), // Add pagination dots if needed
+                                      control: SwiperControl(), // Add control arrows if needed
+                                      // Other Swiper configurations
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -849,7 +849,7 @@ class _ActiveRequestScreenState extends State<ActiveRequestScreen> {
   }
 
 }
-  Future<String> getUserEmail() async {
+Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }

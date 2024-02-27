@@ -174,110 +174,125 @@ class _FullReportState extends State<FullReport> with SingleTickerProviderStateM
 
   Widget _buildVerifiedReportsCard(int index) {
     VerifiedRecordsCard record = verifiedRecords[index];
+    String trimmedDate = getTrimmedDate(record.date);
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ReportDetailsPage(reportId: record.reportId, status: record.status),
-          ),
-        );
-      },
-      child: Column(
-        children: [
-          _buildDivider(getTrimmedDate(record.date)),
-          Card(
-            child: ListTile(
-              title: Padding(
-                padding: EdgeInsets.only(left: 10.0),
-                child: Text(
-                  'Report ID: ${record.reportId}',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        if (index == 0 || getTrimmedDate(verifiedRecords[index - 1].date) != trimmedDate)
+          _buildDivider(trimmedDate),
+        Card(
+          child: ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReportDetailsPage(
+                    reportId: record.reportId,
+                    status: record.status,
                   ),
                 ),
-              ),
-              leading: Container(
-                width: 50.0,
-                height: 100.0,
-                child: ClipOval(
-                  clipBehavior: Clip.hardEdge,
-                  child: CachedMemoryImage(
-                    uniqueKey: 'app://imageProfile/${record.reportId}',
-                    base64: record.residentProfile,
-                    fit: BoxFit.cover,
-                  ),
+              );
+            },
+            title: Padding(
+              padding: EdgeInsets.only(left: 10.0),
+              child: Text(
+                'Report ID: ${record.reportId}',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Name: ${record.name}'),
-                  Text('Emergency Type: ${record.emergencyType}'),
-                  Text('Date: ${record.date}'),
-                ],
               ),
             ),
+            leading: Container(
+              width: 50.0,
+              height: 100.0,
+              child: ClipOval(
+                clipBehavior: Clip.hardEdge,
+                child: record.residentProfile.isNotEmpty
+                    ? CachedMemoryImage(
+                  uniqueKey: 'app://imageProfile/${record.reportId}',
+                  base64: record.residentProfile,
+                  fit: BoxFit.cover,
+                )
+                    : Image.asset(
+                  'Assets/appIcon.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Name: ${record.name}'),
+                Text('Emergency Type: ${record.emergencyType}'),
+                Text('Date: ${record.date}'),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildErrorneousReportsCard(int index) {
     ErrorneousRecordsCard record = errorneousRecords[index];
+    String trimmedDate = getTrimmedDate(record.date);
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ReportDetailsPage(reportId: record.reportId, status: record.status),
-          ),
-        );
-      },
-      child: Column(
-        children: [
-          Card(
-            child: ListTile(
-              title: Padding(
-                padding: EdgeInsets.only(left: 10.0),
-                child: Text(
-                  'Report ID: ${record.reportId}',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        Card(
+          child: ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReportDetailsPage(
+                    reportId: record.reportId,
+                    status: record.status,
                   ),
                 ),
-              ),
-              leading: Container(
-                width: 50.0,
-                height: 100.0,
-                child: ClipOval(
-                  clipBehavior: Clip.hardEdge,
-                  child: CachedMemoryImage(
-                    uniqueKey: 'app://imageProfile/${record.reportId}',
-                    base64: record.residentProfile,
-                    fit: BoxFit.cover,
-                  ),
+              );
+            },
+            title: Padding(
+              padding: EdgeInsets.only(left: 10.0),
+              child: Text(
+                'Report ID: ${record.reportId}',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Name: ${record.name}'),
-                  Text('Emergency Type: ${record.emergencyType}'),
-                  Text('Date: ${record.date}'),
-                ],
               ),
             ),
+            leading: Container(
+              width: 50.0,
+              height: 100.0,
+              child: ClipOval(
+                clipBehavior: Clip.hardEdge,
+                child: CachedMemoryImage(
+                  uniqueKey: 'app://imageProfile/${record.reportId}',
+                  base64: record.residentProfile,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (index == 0 || getTrimmedDate(errorneousRecords[index - 1].date) != trimmedDate)
+                Text('Name: ${record.name}'),
+                Text('Emergency Type: ${record.emergencyType}'),
+                Text('Date: ${record.date}'),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
+
+
+
 
 
   @override
@@ -292,8 +307,8 @@ class _FullReportState extends State<FullReport> with SingleTickerProviderStateM
               SliverToBoxAdapter(
                 child: TabBar(
                   tabs: [
-                    Tab(text: 'Verified'),
-                    Tab(text: 'Errorneous'),
+                    Tab(text: 'Verified Reports'),
+                    Tab(text: 'Incorrect Reports'),
                   ],
                 ),
               ),

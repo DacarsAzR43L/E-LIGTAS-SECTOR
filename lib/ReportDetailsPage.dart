@@ -1,10 +1,41 @@
 import 'dart:convert';
 
+import 'package:cached_memory_image/cached_memory_image.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class InitialReportsCard {
+  final int id;
+  final String name;
+  final String emergencyType;
+  final String date;
+  final locationLink;
+  final phoneNumber;
+  final message;
+  final String residentProfile;
+  final List<String> image;
+  final locationName;
+  final reportId;
+  final sectorName;
+
+  InitialReportsCard({
+    required this.id,
+    required this.reportId,
+    required this.name,
+    required this.emergencyType,
+    required this.date,
+    required this.locationLink,
+    required this.phoneNumber,
+    required this.message,
+    required this.residentProfile,
+    required this.image,
+    required this.locationName,
+    required this.sectorName,
+  });
+}
 
 class ReportDetailsPage extends StatefulWidget {
   final int reportId;
@@ -19,6 +50,8 @@ class ReportDetailsPage extends StatefulWidget {
 class _ReportDetailsPageState extends State<ReportDetailsPage> {
   List<dynamic>? reportData;
   List<dynamic>? spotReportData;
+  List<InitialReportsCard> initialReportslist = [];
+  InitialReportsCard? initialReportsCard;
 
   @override
   void initState() {
@@ -29,14 +62,39 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   Future<void> fetchInitialReportData() async {
     try {
-      String apiUrl = 'https://eligtas.site/public/storage/get_initial_report.php?report_id=${widget
-          .reportId}';
+      String apiUrl = 'https://eligtas.site/public/storage/get_initial_report.php?report_id=${widget.reportId}';
 
       final response = await http.get(Uri.parse(apiUrl));
 
       if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+
         setState(() {
-          reportData = json.decode(response.body);
+          initialReportslist = responseData
+              .asMap()
+              .map((index, data) =>
+              MapEntry(
+                index,
+                InitialReportsCard(
+                  id: index,
+                  reportId: data['report_id'],
+                  sectorName: data['SectorName'],
+                  name: data['resident_name'],
+                  emergencyType: data['emergency_type'],
+                  date: data['dateandTime'],
+                  locationName: data['locationName'],
+                  locationLink: data['locationLink'],
+                  phoneNumber: data['phoneNumber'],
+                  message: data['message'],
+                  residentProfile: data['residentProfile'],
+                  image: (data['imageEvidence'] as List<dynamic>).cast<String>(),
+                ),
+              ))
+              .values
+              .toList();
+
+          // Set initialReportsCard to the first item in the list
+          initialReportsCard = initialReportslist[0];
         });
       } else {
         print('Failed to load report');
@@ -47,8 +105,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   }
 
   Future<void> fetchSpotReportData() async {
-    final String apiUrl = 'https://eligtas.site/public/storage/get_spot_report.php?report_id=${widget
-        .reportId}';
+    final String apiUrl = 'https://eligtas.site/public/storage/get_spot_report.php?report_id=${widget.reportId}';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -74,7 +131,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       ),
       body: Padding(
         padding: EdgeInsets.all(5.w),
-        child: reportData != null
+        child: initialReportslist != null
             ? ListView(
           children: [
             Column(
@@ -95,8 +152,14 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                   height: 100.0,
                   child: ClipOval(
                     clipBehavior: Clip.hardEdge,
-                    child: Image.memory(
-                      base64.decode(reportData![0]['residentProfile']),
+                    child: initialReportsCard?.residentProfile.isNotEmpty ?? false
+                        ? CachedMemoryImage(
+                      uniqueKey: 'app://imageProfile/${initialReportsCard!.reportId}',
+                      base64: initialReportsCard!.residentProfile,
+                      fit: BoxFit.cover,
+                    )
+                        : Image.asset(
+                      'Assets/appIcon.png',
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -105,7 +168,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                 SizedBox(height: 20.0),
                 Text('Report ID: ${widget.reportId}'),
                 SizedBox(height: 5.0),
-                Text('Resident Name: ${reportData![0]['resident_name']}'),
+                Text('Resident Name:${initialReportsCard?.name ?? 'N/A'}'),
                 SizedBox(height: 5.0),
                 Row(
                   children: [
@@ -115,10 +178,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                     SizedBox(width: 5.0),
                     GestureDetector(
                       onTap: () {
-                        launch('tel:+${reportData![0]['phoneNumber']}');
+                        launch('tel:+${initialReportsCard?.phoneNumber}');
                       },
                       child: Text(
-                        '+${reportData![0]['phoneNumber']}',
+                        '+${initialReportsCard?.phoneNumber ?? 'N/A'}',
                         style: TextStyle(
                           color: Colors.blue,
                           decoration: TextDecoration.underline,
@@ -128,12 +191,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                   ],
                 ),
                 SizedBox(height: 5.0),
-                Text('Emergency Type: ${reportData![0]['emergency_type']}'),
+                Text('Emergency Type: ${initialReportsCard?.emergencyType ?? 'N/A'}'),
                 SizedBox(height: 5.0),
-                Text('Date and Time: ${reportData![0]['dateandTime']}'),
+                Text('Date and Time: ${initialReportsCard?.date ?? 'N/A'}'),
                 SizedBox(height: 5.0),
                 Text(
-                  'Rescued By (Brgy/Sector): ${reportData![0]['SectorName']}',
+                  'Rescued By (Brgy/Sector): ${initialReportsCard?.sectorName ?? 'N/A'}',
                 ),
                 SizedBox(height: 5.0),
                 Row(
@@ -146,10 +209,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
-                          launch('${reportData![0]['locationLink']}');
+                          launch('${initialReportsCard?.locationLink}');
                         },
                         child: Text(
-                          '${reportData![0]['locationLink']}',
+                          '${initialReportsCard?.locationLink ?? 'N/A'}',
                           style: TextStyle(
                             color: Colors.blue,
                             decoration: TextDecoration.underline,
@@ -162,7 +225,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                   ],
                 ),
                 SizedBox(height: 5.0),
-                Text('Location Name: ${reportData![0]['locationName']}'),
+                Text('Location Name:${initialReportsCard?.locationName ?? 'N/A'}'),
 
                 SizedBox(height: 5.0),
 
@@ -171,7 +234,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                     Text('Message: '),
                     SizedBox(width: 5.0),
                     Flexible(child: Text(
-                        reportData![0]['message'],
+                        initialReportsCard?.message ?? 'N/A',
                         softWrap: true)),
                   ],
                 ),
@@ -184,31 +247,38 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 Container(
-                  height: 400.0,
-                  child: Swiper(
+                  width: double.infinity,
+                  height: 400,
+                  child: initialReportsCard?.image == null || initialReportsCard!.image.isEmpty
+                      ? Container(
+                    alignment: Alignment.center,
+                    child: Text(
+                      "No image evidence available",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                      : Swiper(
                     loop: false,
-                    itemBuilder:
-                        (BuildContext context, int index) {
+                    itemBuilder: (BuildContext context, int swiperIndex) {
                       return Container(
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: MemoryImage(
-                              base64.decode(
-                                  reportData![0]['imageEvidence'][index]),
-                            ),
-                            fit: BoxFit.contain,
-                          ),
+                        alignment: Alignment.center,
+                        child: Image.memory(
+                          base64Decode(initialReportsCard!.image[swiperIndex]),
+                          fit: BoxFit.cover,
                         ),
                       );
                     },
-                    itemCount:
-                    reportData![0]['imageEvidence'].length,
-                    pagination: SwiperPagination(),
-                    control: SwiperControl(),
+                    itemCount: initialReportsCard!.image.length,
+                    pagination: SwiperPagination(), // Add pagination dots if needed
+                    control: SwiperControl(), // Add control arrows if needed
+                    // Other Swiper configurations
                   ),
                 ),
+
 
                 SizedBox(height: 23.0),
 
@@ -233,7 +303,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
                 SizedBox(height: 5.0),
                 Text(
-                  spotReportData![0]['description'],
+                  spotReportData?[0]['description'] ?? 'N/A',
                   textAlign: TextAlign.justify,
                 ),
 
@@ -248,34 +318,32 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                 ),
                 SizedBox(height: 10.0),
 
-                // Display images in base64
-                // Display images in base64
+                // Display images in base64 for spot report
                 Container(
                   height: 400.0,
-                  child: Swiper(
+                  child: spotReportData != null && spotReportData![0]['imageEvidence'] != null
+                      ? Swiper(
                     loop: false,
-                    itemBuilder:
-                        (BuildContext context, int index) {
+                    itemBuilder: (BuildContext context, int index) {
                       return Container(
                         decoration: BoxDecoration(
                           image: DecorationImage(
                             image: MemoryImage(
-                              base64.decode(
-                                  spotReportData![0]['imageEvidence'][index]),
+                              base64.decode(spotReportData![0]['imageEvidence'][index]),
                             ),
                             fit: BoxFit.contain,
                           ),
                         ),
                       );
                     },
-                    itemCount:
-                    spotReportData![0]['imageEvidence'].length,
+                    itemCount: spotReportData![0]['imageEvidence'].length,
                     pagination: SwiperPagination(),
                     control: SwiperControl(),
+                  )
+                      : Center(
+                    child: Text('No image evidence for spot report'),
                   ),
                 ),
-
-
               ],
             ),
           ],

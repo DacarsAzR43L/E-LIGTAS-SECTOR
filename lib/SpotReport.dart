@@ -812,7 +812,7 @@ class _SpotReportState extends State<SpotReport> {
                                     ),// Set background color to red
                                   ),
                                   child: Text(
-                                    'Mark as Erroneous X',
+                                    'Mark as Incorrect X',
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 ),

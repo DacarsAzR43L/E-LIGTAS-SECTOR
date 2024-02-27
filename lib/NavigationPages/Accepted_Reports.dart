@@ -95,14 +95,14 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
 
   Future<void> initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = '${documentsDirectory.path}/accepted_reports7.db';
+    String path = '${documentsDirectory.path}/accepted_reports10.db';
 
     _database = await openDatabase(
       path,
       onCreate: (db, version) {
         return db.execute(
           '''
-        CREATE TABLE accepted_reports7 (
+        CREATE TABLE accepted_reports10 (
           id INTEGER PRIMARY KEY,
           reportId TEXT,
           name TEXT,
@@ -113,7 +113,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
           phoneNumber TEXT,
           message TEXT,
           residentProfile TEXT,
-          image TEXT
+          imageEvidence TEXT
         )
         ''',
         );
@@ -216,7 +216,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
           // Start a database transaction to delete previous data
           _database.transaction((txn) async {
             // Delete all previous data from the local database
-            txn.delete('accepted_reports7');
+            txn.delete('accepted_reports10');
             print('Previous data deleted successfully');
           });
 
@@ -250,10 +250,10 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
           }
         });
       } else {
-        print('Error: ${response.reasonPhrase}');
+        print('Error1: ${response.reasonPhrase}');
       }
     } catch (error) {
-      print('Error: $error');
+      print('Error2: $error');
     }
   }
 
@@ -277,7 +277,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
             if (compressedResidentProfile != null) {
               // Insert the new data into the local database with compressed bytes
               await txn.insert(
-                'accepted_reports7',
+                'accepted_reports10',
                 {
                   'reportId': newItem.reportId,
                   'name': newItem.name,
@@ -329,7 +329,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
   Future<void> loadFromLocalDatabase() async {
     // Load data from the local database, ordered by date in descending order
     List<Map<String, dynamic>> result = await _database.query(
-      'accepted_reports7',
+      'accepted_reports10',
       orderBy: 'date DESC', // Order by date in descending order
     );
 
@@ -562,6 +562,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
                               width: double.infinity,
                               height: 400,
                               child: Swiper(
+                                loop: false,
                                 itemBuilder: (BuildContext context, int index) {
                                   return Container(
                                     alignment: Alignment.center,
@@ -647,7 +648,7 @@ class _AcceptedReportsScreenState extends State<AcceptedReportsScreen> with Auto
 
 }
 
-  Future<String> getUserEmail() async {
+Future<String> getUserEmail() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('userEmail') ?? '';
 }
